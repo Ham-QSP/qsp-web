@@ -31,7 +31,7 @@ function accountArraysAreEqual(arrayA: Array<AccountIdentifiers>, arrayB: Array<
 }
 
 export const msalPlugin = {
-  install: (app: App, msalInstance: PublicClientApplication) => {
+  install: (app: App, msalInstance: PublicClientApplication | null) => {
 
     const inProgress = InteractionStatus.Startup;
     const accounts = msalInstance.getAllAccounts();

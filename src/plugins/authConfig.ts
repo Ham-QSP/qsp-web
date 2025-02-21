@@ -1,5 +1,7 @@
 import {LogLevel, PublicClientApplication} from '@azure/msal-browser';
 import type {App} from "vue";
+import type {AuthenticationResult} from "@azure/msal-browser";
+import {EventType} from "@azure/msal-browser";
 
 //export const msalInstance = new PublicClientApplication( buildPublicClientConfig());
 
@@ -12,10 +14,18 @@ class AuthConfig {
   publicClientApplication: PublicClientApplication | null = null;
 
   init(app: App) {
-    this.publicClientApplication = new PublicClientApplication( buildPublicClientConfig(
+    this.publicClientApplication = new PublicClientApplication(buildPublicClientConfig(
       app.config.globalProperties.config.MSAL_CLIENT_ID,
       app.config.globalProperties.config.MSAL_AUTHORITY,
       app.config.globalProperties.config.MSAL_REDIRECT_URI));
+
+    this.publicClientApplication.addEventCallback((event) => {
+      if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+        const payload = event.payload as AuthenticationResult;
+        const account = payload.account;
+        this.publicClientApplication?.setActiveAccount(account);
+      }
+    });
   }
 }
 
@@ -28,7 +38,7 @@ function buildPublicClientConfig(clientId: string, authority: string, redirectUr
       clientId: clientId,
       authority: authority,
       redirectUri: redirectUri,
-      postLogoutRedirectUri: '/' // Must be registered as a SPA redirectURI on your app registration
+      postLogoutRedirectUri: '/'
     },
     cache: {
       cacheLocation: 'localStorage'
