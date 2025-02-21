@@ -1,0 +1,5 @@
+{
+  "MSAL_CLIENT_ID": "03bcfff7-678b-4d47-95c5-fce4f02520eb",
+  "MSAL_REDIRECT_URI": "http://localhost:3000",
+  "MSAL_AUTHORITY": "https://login.microsoftonline.com/830fa23d-86e7-4174-9e22-77ebd8ff4c3b"
+}

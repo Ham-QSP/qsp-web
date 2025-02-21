@@ -5,18 +5,26 @@
  */
 
 // Plugins
-import { registerPlugins } from '@/plugins'
+import {registerPlugins} from '@/plugins'
 
 // Components
 import App from './App.vue'
 
 // Composables
-import { createApp } from 'vue'
-
+import {createApp} from 'vue'
+import {authConfig} from "@/plugins/authConfig";
 
 
 const app = createApp(App)
 
-registerPlugins(app)
 
-app.mount('#app')
+fetch("/config.json")
+  .then((response) => response.json())
+  .then((config) => {
+    app.config.globalProperties.config = config
+    authConfig.init(app)
+
+    registerPlugins(app)
+
+    app.mount('#app')
+  })
