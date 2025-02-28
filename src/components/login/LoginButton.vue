@@ -1,11 +1,11 @@
 <script setup lang="ts">
 
-import {useIsAuthenticated, useMsal} from './useMsal';
+import {userIsAuthenticated, useMsal} from './useMsal';
 import {loginRequest} from "@/plugins/authConfig";
 import {getQspServerInfo} from "./QspServerInfo";
 
 const {instance} = useMsal();
-const isAuthenticated = useIsAuthenticated();
+const isAuthenticated = userIsAuthenticated();
 const serverInfoReady = ref(false);
 const serverInfoName = ref("[Loading...]");
 const serverInfoType = ref("");
@@ -49,7 +49,7 @@ function getServerInfo() {
     </template>
 
     <template v-slot:default="{ isActive }">
-      <v-card title="Connection">
+      <v-card title="QSP Server">
         <v-card-text>
           <v-expansion-panels :disabled="!serverInfoReady">
             <v-expansion-panel>

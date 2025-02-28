@@ -15,7 +15,7 @@ export class QspServerInfo {
 export async function getQspServerInfo(): Promise<QspServerInfo> {
 
   // Example implementation to fetch server information from the backend
-  const apiUrl = import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/server"; // Replace with the actual API endpoint
+  const apiUrl = import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/server/description"; // Replace with the actual API endpoint
 
   return fetch(apiUrl)
     .then((response) => {

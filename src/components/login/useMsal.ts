@@ -36,7 +36,7 @@ export function useMsal(): MsalContext {
   }
 }
 
-export function useIsAuthenticated(): Ref<boolean> {
+export function userIsAuthenticated(): Ref<boolean> {
   const { accounts } = useMsal();
   const isAuthenticated = ref(accounts.value.length > 0);
 
