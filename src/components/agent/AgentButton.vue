@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import {AgentConnection, ConnectionState, getAgents} from "@/components/agent/Signaling";
-import {userIsAuthenticated} from "@/components/login/useMsal";
+import {userIsAuthenticated} from "@/stores/useMsal";
+import {useAgentStore} from "@/stores/Agent";
 
+const agentStore = useAgentStore()
 const isAuthenticated = userIsAuthenticated();
 
 const agentId = ref<AgentConnection>(new AgentConnection())
 const radioList = ref([])
 
 function loadRadios() {
-  getAgents().then( agents => {
-    const radioList = agents.map(agent => {
+  agentStore.getAgents().then( agents => {
+    const radioList = agents.data.map(agent => {
       title: agent.name
       subtitle: agent.description
     })

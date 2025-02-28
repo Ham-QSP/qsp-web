@@ -1,7 +1,8 @@
-import type { AccountInfo } from "@azure/msal-browser";
-import { InteractionStatus, PublicClientApplication } from "@azure/msal-browser";
-import { getCurrentInstance, toRefs } from "vue";
-import type { Ref } from "vue";
+import {type AccountInfo, type AuthenticationResult, InteractionRequiredAuthError} from "@azure/msal-browser";
+import {InteractionStatus, PublicClientApplication} from "@azure/msal-browser";
+import {getCurrentInstance, toRefs} from "vue";
+import type {Ref} from "vue";
+import {loginRequest} from "@/plugins/authConfig";
 
 export type MsalContext = {
   instance: PublicClientApplication,
@@ -14,7 +15,7 @@ export function useMsal(): MsalContext {
   if (!internalInstance) {
     throw "useMsal() cannot be called outside the setup() function of a component";
   }
-  const { instance, accounts, inProgress} = toRefs(internalInstance.appContext.config.globalProperties.$msal);
+  const {instance, accounts, inProgress} = toRefs(internalInstance.appContext.config.globalProperties.$msal);
 
   if (!instance || !accounts || !inProgress) {
     throw "Please install the msalPlugin";
@@ -37,7 +38,7 @@ export function useMsal(): MsalContext {
 }
 
 export function userIsAuthenticated(): Ref<boolean> {
-  const { accounts } = useMsal();
+  const {accounts} = useMsal();
   const isAuthenticated = ref(accounts.value.length > 0);
 
   watch(accounts, () => {
@@ -45,4 +46,19 @@ export function userIsAuthenticated(): Ref<boolean> {
   });
 
   return isAuthenticated;
+}
+
+export async function acquireOrRefreshToken() {
+  const {instance} = useMsal();
+  return instance.acquireTokenSilent(loginRequest)
+    .catch(async (error: unknown) => {
+      if (error instanceof InteractionRequiredAuthError) {
+        return instance.acquireTokenPopup(loginRequest)
+      }
+      throw error
+    })
+    .then((result: AuthenticationResult) => {
+      return result.accessToken
+    });
+
 }
