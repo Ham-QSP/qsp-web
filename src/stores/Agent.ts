@@ -10,6 +10,7 @@ export const useAgentStore = defineStore('agent', {
   actions: {
     getAgents(): Promise<AgentDetail> {
       return axios.get(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents");
+      //return this.axiosStore.axios.get(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents");
     },
     signalClientForWebRTC(signalCommand: ClientSignalCommand): Promise<ClientSignalResponse> {
       return  axios.post(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/signal", signalCommand)

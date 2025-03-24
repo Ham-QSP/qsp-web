@@ -1,11 +1,14 @@
 <script setup lang="ts">
 
-import {userIsAuthenticated, useMsal} from '../../stores/useMsal';
+// import {useMsal, userIsAuthenticated} from '../../stores/useMsal';
 import {loginRequest} from "@/plugins/authConfig";
 import {getQspServerInfo} from "./QspServerInfo";
+import {useAuthentStore} from "@/stores/authent";
 
-const {instance} = useMsal();
-const isAuthenticated = userIsAuthenticated();
+// const {instance} = useMsal();
+// const isAuthenticated = userIsAuthenticated();
+
+const authentStore = useAuthentStore();
 const serverInfoReady = ref(false);
 const serverInfoName = ref("[Loading...]");
 const serverInfoType = ref("");
@@ -13,10 +16,10 @@ const serverInfoVersion = ref("");
 const serverInfoDescription = ref("");
 
 const loginClick = () => {
-  instance.loginPopup(loginRequest);
+  authentStore.msalInstance?.loginPopup(loginRequest)
 }
 const logoutClick = () => {
-  instance.logoutPopup({
+  authentStore.msalInstance?.logoutPopup({
     mainWindowRedirectUri: "/"
   });
 }
@@ -33,7 +36,7 @@ function getServerInfo() {
 </script>
 
 <template>
-  <v-btn v-if="!isAuthenticated" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
+  <v-btn v-if="!authentStore.isUserAuthenticated" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
   ></v-btn>
   <v-dialog v-else max-width="500" @after-enter="getServerInfo">
     <template v-slot:activator="{ props: activatorProps }">
@@ -43,7 +46,7 @@ function getServerInfo() {
           <v-icon></v-icon>
         </template>
         <div>
-          {{ instance.getActiveAccount().name }}
+          {{ authentStore.msalInstance?.getActiveAccount().name }}
         </div>
       </v-btn>
     </template>

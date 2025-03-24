@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import {AgentConnection, ConnectionState, getAgents} from "@/components/agent/Signaling";
-import {userIsAuthenticated} from "@/stores/useMsal";
+//import {userIsAuthenticated} from "@/stores/useMsal";
 import {useAgentStore} from "@/stores/Agent";
+import {useAuthentStore} from "@/stores/authent";
 
 const agentStore = useAgentStore()
-const isAuthenticated = userIsAuthenticated();
+
+const authentStore = useAuthentStore();
 
 const agentId = ref<AgentConnection>(new AgentConnection())
 const radioList = ref([])
@@ -39,6 +41,7 @@ function loadRadios() {
   ];
 }
 
+authentStore.printDiagnose();
 loadRadios();
 
 </script>
@@ -47,7 +50,7 @@ loadRadios();
   <v-dialog max-width="500">
     <template v-slot:activator="{ props: activatorProps }">
 
-      <v-btn prepend-icon="mdi-radio" rounded="xl" v-bind="activatorProps" :disabled="!isAuthenticated">
+      <v-btn prepend-icon="mdi-radio" rounded="xl" v-bind="activatorProps" :disabled="!authentStore.isUserAuthenticated">
         <template v-slot:prepend>
           <v-icon></v-icon>
         </template>
