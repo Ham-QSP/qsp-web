@@ -32,7 +32,6 @@ class AuthConfig {
 export const authConfig = new AuthConfig();
 
 function buildPublicClientConfig(clientId: string, authority: string, redirectUri: string) {
-
   return {
     auth: {
       clientId: clientId,
