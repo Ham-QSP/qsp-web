@@ -1,16 +1,15 @@
 import {defineStore} from 'pinia'
-import {authConfig, loginRequest} from "@/plugins/authConfig";
+import {authConfig, loginRequest} from "@/plugins/msalConfig";
 import {
   type AuthenticationResult,
   type EventMessage, EventMessageUtils, EventType,
   InteractionRequiredAuthError,
-  InteractionStatus
+  InteractionStatus, PublicClientApplication
 } from "@azure/msal-browser";
 
-export const useAuthentStore = () => {
-  const innerStore = defineStore('authent', {
+export const useAuthentStore = defineStore('authent', {
     state: () => {
-      const msalInstance = authConfig.publicClientApplication;
+      const msalInstance = authConfig.publicClientApplication as PublicClientApplication;
       console.log("useAuthentStore init." + msalInstance);
       const inProgress: InteractionStatus = InteractionStatus.Startup;
       //await msalInstance?.initialize();
@@ -59,6 +58,7 @@ export const useAuthentStore = () => {
         await this.msalInstance.initialize();
         await this.msalInstance.handleRedirectPromise();
       },
+
       printDiagnose() {
         const accounts = this.msalInstance?.getAllAccounts();
         if (accounts && accounts.length > 0) {
@@ -69,6 +69,8 @@ export const useAuthentStore = () => {
         }
       },
       async acquireOrRefreshToken() {
+
+
         console.log("acquireOrRefreshToken. State: " + this.inProgress + "");
         return this.msalInstance.acquireTokenSilent(loginRequest)
           .catch(async (error: unknown) => {
@@ -83,13 +85,4 @@ export const useAuthentStore = () => {
       }
     }
   })
-
-  const store = innerStore();
-  store.init().then(
-    () => {
-      console.log("init done");
-    });
-
-  return store;
-}
 

@@ -12,7 +12,8 @@ import App from './App.vue'
 
 // Composables
 import {createApp} from 'vue'
-import {authConfig} from "@/plugins/authConfig";
+import {authConfig} from "@/plugins/msalConfig";
+import {useAuthentStore} from "@/stores/authent";
 
 
 const app = createApp(App)
@@ -26,5 +27,11 @@ fetch("/config.json")
 
     registerPlugins(app)
 
-    app.mount('#app')
+    const auth = useAuthentStore();
+    auth.init().then(
+      () => {
+        console.debug("Mount app");
+        app.mount('#app')
+      });
+
   })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 
 // import {useMsal, userIsAuthenticated} from '../../stores/useMsal';
-import {loginRequest} from "@/plugins/authConfig";
+import {loginRequest} from "@/plugins/msalConfig";
 import {getQspServerInfo} from "./QspServerInfo";
 import {useAuthentStore} from "@/stores/authent";
 
