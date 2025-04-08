@@ -36,7 +36,7 @@ function getServerInfo() {
 </script>
 
 <template>
-  <v-btn v-if="!authentStore.isUserAuthenticated" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
+  <v-btn v-if="!authentStore.isAuthenticated" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
   ></v-btn>
   <v-dialog v-else max-width="500" @after-enter="getServerInfo">
     <template v-slot:activator="{ props: activatorProps }">

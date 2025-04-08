@@ -50,7 +50,7 @@ loadRadios();
   <v-dialog max-width="500">
     <template v-slot:activator="{ props: activatorProps }">
 
-      <v-btn prepend-icon="mdi-radio" rounded="xl" v-bind="activatorProps" :disabled="!authentStore.isUserAuthenticated">
+      <v-btn prepend-icon="mdi-radio" rounded="xl" v-bind="activatorProps" :disabled="!authentStore.isAuthenticated">
         <template v-slot:prepend>
           <v-icon></v-icon>
         </template>
