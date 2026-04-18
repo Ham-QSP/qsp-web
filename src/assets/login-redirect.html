@@ -1,0 +1,17 @@
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Authentication</title>
+</head>
+<body>
+Redirected !
+</body>
+<script type="text/javascript">
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const authorizationCode = urlParams.get('code');
+    let bc = new BroadcastChannel("authent_popup");
+    bc.postMessage("{\"action\":\"AUTHORIZATION_CODE\",\"code\":\"" + authorizationCode + "\"}");
+    window.close();
+</script>
+</html>

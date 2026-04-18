@@ -16,12 +16,10 @@ const serverInfoVersion = ref("");
 const serverInfoDescription = ref("");
 
 const loginClick = () => {
-  authentStore.msalInstance?.loginPopup(loginRequest)
+  authentStore.login()
 }
 const logoutClick = () => {
-  authentStore.msalInstance?.logoutPopup({
-    mainWindowRedirectUri: "/"
-  });
+  authentStore.logout();
 }
 
 function getServerInfo() {
@@ -36,7 +34,7 @@ function getServerInfo() {
 </script>
 
 <template>
-  <v-btn v-if="!authentStore.isAuthenticated" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
+  <v-btn v-if="!authentStore.isAuthenticated()" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
   ></v-btn>
   <v-dialog v-else max-width="500" @after-enter="getServerInfo">
     <template v-slot:activator="{ props: activatorProps }">
@@ -46,7 +44,7 @@ function getServerInfo() {
           <v-icon></v-icon>
         </template>
         <div>
-          {{ authentStore.msalInstance?.getActiveAccount().name }}
+          {{ authentStore.account.name }}
         </div>
       </v-btn>
     </template>
