@@ -87,6 +87,7 @@ function decodeJWT(token: string): any {
 
 }
 function isTokenValid(accessToken: string): boolean {
+  console.debug("Auth: Validate token");
   try {
     const decodedToken = decodeJWT(accessToken);
 
@@ -134,7 +135,7 @@ export const useAuthentStore = defineStore('authent', {
           console.log("Auth: Received authorization code: " + authMessage.code);
            this.getTokenFromAuthorizationCode(authMessage.code).then((token) => {
              console.debug("Auth: Get Auth response.");
-             this.handleSuccessLoginResponse(token.data);
+             this.handleSuccessTokenResponseAcquisition(token.data);
            })
         } else {
           console.log("Auth: Invalid authentication state / message combination. State: " + this.loginState + " Message: " + message.data + "");
@@ -150,9 +151,8 @@ export const useAuthentStore = defineStore('authent', {
         try {
           const tokenResponse: TokenResponse = JSON.parse(storedToken);
 
-          if (this.validateOrRefreshToken(tokenResponse)) {
-            console.debug("Auth: Restored token is valid");
-            this.handleSuccessLoginResponse(tokenResponse);
+          if (await this.validateOrRefreshToken(tokenResponse)) {
+            console.debug("Auth: Token restored successfully");
           } else {
             console.debug("Auth: Stored token is expired or invalid");
             localStorage.removeItem(STORAGE_TOKEN);
@@ -198,7 +198,7 @@ export const useAuthentStore = defineStore('authent', {
         this.loginState = LoginState.IDLE;
       }
     },
-    handleSuccessLoginResponse(tokenResponse: TokenResponse) {
+    handleSuccessTokenResponseAcquisition(tokenResponse: TokenResponse) {
       this.tokenResponse = tokenResponse;
       const decodedToken = decodeJWT(tokenResponse.access_token);
       this.account = new AuthentAccount();
@@ -207,7 +207,7 @@ export const useAuthentStore = defineStore('authent', {
       this.loginState = LoginState.AUTHENTICATED;
 
       localStorage.setItem(STORAGE_TOKEN, JSON.stringify(tokenResponse));
-      console.log("Auth: login: success");
+      console.log("Auth: Token acquired");
     },
 
     async logout() {
@@ -232,17 +232,32 @@ export const useAuthentStore = defineStore('authent', {
       return axios.post("http://localhost:9000/oauth2/token", params);
     },
 
-    validateOrRefreshToken(tokenResponse: TokenResponse) {
-      let accessTokenValid: boolean = false;
-      console.debug("Auth: Try to validate token");
-      if (tokenResponse != null) {
-        accessTokenValid = isTokenValid(tokenResponse.access_token);
-      }
-      if (!accessTokenValid) {
+    getTokenFromARefreshToken(refreshToken: string) : Promise<TokenResponse> {
+      const params = new URLSearchParams();
+      params.append('grant_type', 'refresh_token');
+      params.append('client_id', 'oidc-client');
+      params.append('refresh_token', refreshToken);
+      return axios.post("http://localhost:9000/oauth2/token", params);
+    },
 
-        return false;
+    async validateOrRefreshToken(tokenResponse: TokenResponse) {
+      console.debug("Auth: Validate token or refresh");
+      if (tokenResponse != null) {
+        let accessTokenValid: boolean = false;
+        accessTokenValid = isTokenValid(tokenResponse.access_token);
+        if (accessTokenValid) {
+          this.handleSuccessTokenResponseAcquisition(tokenResponse)
+        }
+        else {
+          console.debug("Auth: Access token is expired or invalid. Try to refresh token");
+          const newTokenResponse = await this.getTokenFromARefreshToken(tokenResponse.refresh_token);
+          accessTokenValid = true;
+          console.debug("Auth: Refresh token success");
+          this.handleSuccessTokenResponseAcquisition(newTokenResponse.data);
+        }
+        return accessTokenValid;
       }
-      return accessTokenValid;
+      return false;
     },
 
     async acquireOrRefreshToken() {
