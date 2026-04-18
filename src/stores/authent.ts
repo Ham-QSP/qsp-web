@@ -261,7 +261,20 @@ export const useAuthentStore = defineStore('authent', {
     },
 
     async acquireOrRefreshToken() {
-      return "";
+      if (this.loginState != LoginState.AUTHENTICATED) {
+        return null;
+      }
+
+      if (this.tokenResponse != null) {
+        const hasValidToken = await this.validateOrRefreshToken(this.tokenResponse);
+        if (hasValidToken) {
+          return this.tokenResponse.access_token;
+        }
+      }
+
+      console.log("Can't get a valid token. Disconnecting");
+      await this.logout();
+      return null;
     },
   }
 })
