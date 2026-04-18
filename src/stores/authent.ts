@@ -1,6 +1,8 @@
 import {defineStore} from 'pinia'
 import axios, {type AxiosInstance} from "axios";
 
+const STORAGE_TOKEN = 'tokenResponse';
+
 class AuthentAccount {
   name: string = ""
 }
@@ -25,33 +27,32 @@ enum LoginState {
   REDIRECT_SUCCESS,
   AUTHENTICATED,
 }
-
 export function getCrypto(): Crypto {
   return globalThis.crypto;
-}
 
+}
 export function getCryptoSubtle(): SubtleCrypto {
   return getCrypto().subtle;
-}
 
+}
 export async function generateCodeVerifier(): Promise<string> {
   const rando = randomCode();
   const encoded = base64URLEncode(rando);
   return encoded;
-}
 
+}
 function randomCode(): string {
   let array = new Uint8Array(32);
   array = globalThis.crypto.getRandomValues(array);
   return String.fromCharCode.apply(null, Array.from(array));
-}
 
+}
 function base64URLEncode(str: string): string {
   const b64 = btoa(str);
   const encoded = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
   return encoded;
-}
 
+}
 const sha256 = async (str: string): Promise<string> => {
   const hashArray = await getCryptoSubtle().digest(
     {name: "SHA-256"},
@@ -61,20 +62,20 @@ const sha256 = async (str: string): Promise<string> => {
   const numberArray = Array.from(uIntArray);
   const hashString = String.fromCharCode.apply(null, numberArray);
   return urlEncodeB64(btoa(hashString));
-};
 
+};
 const urlEncodeB64 = (input: string) => {
   const b64Chars: { [index: string]: string } = {"+": "-", "/": "_", "=": ""};
   return input.replace(/[+/=]/g, (m: string) => b64Chars[m]);
-};
 
+};
 export async function generateChallenge(
   codeVerifierString: string
 ): Promise<string> {
   const sha = await sha256(codeVerifierString);
   return sha;
-}
 
+}
 function decodeJWT(token: string): any {
   const parts = token.split('.');
   if (parts.length !== 3) {
@@ -83,14 +84,14 @@ function decodeJWT(token: string): any {
   const payload = parts[1];
   const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
   return JSON.parse(decoded);
-}
 
+}
 function isTokenValid(accessToken: string): boolean {
   try {
     const decodedToken = decodeJWT(accessToken);
 
     if (!decodedToken.exp) {
-      console.warn("Token does not have an expiration claim");
+      console.warn("Auth: Token does not have an expiration claim");
       return false;
     }
 
@@ -98,20 +99,16 @@ function isTokenValid(accessToken: string): boolean {
     const isValid = decodedToken.exp > currentTime;
 
     if (!isValid) {
-      console.log("Token has expired");
+      console.log("Auth: Token has expired");
     }
 
     return isValid;
   } catch (error) {
-    console.error("Failed to validate token:", error);
+    console.error("Auth: Failed to validate token:", error);
     return false;
   }
-}
 
-function validateTokens(tokenResponse: TokenResponse): boolean {
-  return isTokenValid(tokenResponse.access_token)
 }
-
 export const useAuthentStore = defineStore('authent', {
   state: () => {
     const account = ref<AuthentAccount | null>(null);
@@ -127,42 +124,46 @@ export const useAuthentStore = defineStore('authent', {
     async init() {
       console.log("Auth: init");
 
-      this.restoreStorage();
+      await this.restoreStorage();
 
       const bc = new BroadcastChannel("authent_popup");
       bc.onmessage = async (message) => {
         const authMessage: AuthenticationBroadcastMessage = JSON.parse(message.data);
         if (authMessage.action === "AUTHORIZATION_CODE" && this.loginState === LoginState.REDIRECT_START) {
           this.loginState = LoginState.REDIRECT_SUCCESS;
-          console.log("Received authorization code: " + authMessage.code);
+          console.log("Auth: Received authorization code: " + authMessage.code);
            this.getTokenFromAuthorizationCode(authMessage.code).then((token) => {
-             console.debug("Get Auth response.");
-             console.log("Access token:", token.data.access_token);
+             console.debug("Auth: Get Auth response.");
              this.handleSuccessLoginResponse(token.data);
            })
         } else {
-          console.log("Invalid authentication state / message combination. State: " + this.loginState + " Message: " + message.data + "");
+          console.log("Auth: Invalid authentication state / message combination. State: " + this.loginState + " Message: " + message.data + "");
           this.loginState = LoginState.IDLE;
         }
       }
     },
 
-    restoreStorage() {
-      const storedToken = localStorage.getItem('tokenResponse');
+    async restoreStorage() {
+      const storedToken = localStorage.getItem(STORAGE_TOKEN);
       if (storedToken) {
+        console.debug("Auth: Restoring token from localStorage");
         try {
           const tokenResponse: TokenResponse = JSON.parse(storedToken);
 
-          if (validateTokens(tokenResponse)) {
+          if (this.validateOrRefreshToken(tokenResponse)) {
+            console.debug("Auth: Restored token is valid");
             this.handleSuccessLoginResponse(tokenResponse);
           } else {
-            console.debug("Stored token is expired or invalid");
-            localStorage.removeItem('tokenResponse');
+            console.debug("Auth: Stored token is expired or invalid");
+            localStorage.removeItem(STORAGE_TOKEN);
           }
         } catch (error) {
-          console.error("Failed to restore token from localStorage:", error);
-          localStorage.removeItem('tokenResponse');
+          console.error("Auth: Failed to restore token from localStorage:", error);
+          localStorage.removeItem(STORAGE_TOKEN);
         }
+      }
+      else {
+        console.debug("Auth: No token found in localStorage");
       }
     },
 
@@ -173,7 +174,6 @@ export const useAuthentStore = defineStore('authent', {
       const windowFeatures = "popup,width=400,height=500";
       const verifier = await generateCodeVerifier();
       const challenge = await generateChallenge(verifier);
-      console.log({verifier, challenge});
       this.codeVerifier = verifier;
 
       const params = new URLSearchParams();
@@ -206,13 +206,13 @@ export const useAuthentStore = defineStore('authent', {
 
       this.loginState = LoginState.AUTHENTICATED;
 
-  // Persist tokenResponse to localStorage
-      localStorage.setItem('tokenResponse', JSON.stringify(tokenResponse));
+      localStorage.setItem(STORAGE_TOKEN, JSON.stringify(tokenResponse));
+      console.log("Auth: login: success");
     },
 
     async logout() {
       console.log("Auth: logout");
-      localStorage.removeItem('tokenResponse');
+      localStorage.removeItem(STORAGE_TOKEN);
       this.tokenResponse = null;
       this.account = null;
       this.loginState = LoginState.IDLE;
@@ -232,8 +232,21 @@ export const useAuthentStore = defineStore('authent', {
       return axios.post("http://localhost:9000/oauth2/token", params);
     },
 
+    validateOrRefreshToken(tokenResponse: TokenResponse) {
+      let accessTokenValid: boolean = false;
+      console.debug("Auth: Try to validate token");
+      if (tokenResponse != null) {
+        accessTokenValid = isTokenValid(tokenResponse.access_token);
+      }
+      if (!accessTokenValid) {
+
+        return false;
+      }
+      return accessTokenValid;
+    },
+
     async acquireOrRefreshToken() {
-      return ""
-    }
+      return "";
+    },
   }
 })
