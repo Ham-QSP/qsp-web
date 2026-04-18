@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {AgentConnection, ConnectionState, getAgents} from "@/components/agent/Signaling";
-//import {userIsAuthenticated} from "@/stores/useMsal";
 import {useAgentStore} from "@/stores/Agent";
 import {useAuthentStore} from "@/stores/authent";
 
