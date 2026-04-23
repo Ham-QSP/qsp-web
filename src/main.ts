@@ -12,7 +12,7 @@ import App from './App.vue'
 
 // Composables
 import {createApp} from 'vue'
-import {authConfig} from "@/plugins/authConfig";
+import {useAuthentStore} from "@/stores/authent";
 
 
 const app = createApp(App)
@@ -22,9 +22,13 @@ fetch("/config.json")
   .then((response) => response.json())
   .then((config) => {
     app.config.globalProperties.config = config
-    authConfig.init(app)
 
     registerPlugins(app)
 
-    app.mount('#app')
+    const auth = useAuthentStore();
+    auth.init().then(
+      () => {
+        app.mount('#app')
+      });
+
   })

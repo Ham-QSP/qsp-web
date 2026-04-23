@@ -12,13 +12,9 @@ import router from '../router'
 // Types
 import type {App} from 'vue'
 
-import {msalPlugin} from "./msalPlugin";
-import {authConfig} from "@/plugins/authConfig";
-
 export function registerPlugins(app: App) {
   app
     .use(vuetify)
     .use(router)
     .use(pinia)
-    .use(msalPlugin, authConfig.publicClientApplication);
 }

@@ -3,6 +3,7 @@
     <v-app-bar>
       <v-app-bar-title>QSP</v-app-bar-title>
       <template v-slot:append>
+        <AgentButton></AgentButton>
         <v-divider vertical></v-divider>
         <LoginButton></LoginButton>
       </template>

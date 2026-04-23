@@ -10,7 +10,7 @@ export const loginRequest = {
   scopes: ['User.Read'],
 };
 
-class AuthConfig {
+class MsalConfig {
   publicClientApplication: PublicClientApplication | null = null;
 
   init(app: App) {
@@ -29,10 +29,9 @@ class AuthConfig {
   }
 }
 
-export const authConfig = new AuthConfig();
+export const authConfig = new MsalConfig();
 
 function buildPublicClientConfig(clientId: string, authority: string, redirectUri: string) {
-
   return {
     auth: {
       clientId: clientId,
