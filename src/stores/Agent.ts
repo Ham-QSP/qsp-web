@@ -7,8 +7,10 @@ export const useAgentStore = defineStore('agent', {
     return {axiosStore: useAxiosStore()}
   },
   actions: {
-    getAgents(): Promise<AgentDetail> {
-      return this.axiosStore.axios.get(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents");
+    getAgents(): Promise<AgentDetail[]> {
+      return this.axiosStore.axios
+        .get<AgentDetail[]>(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents")
+        .then((response) => response.data);
     },
     signalClientForWebRTC(signalCommand: ClientSignalCommand): Promise<ClientSignalResponse> {
       return this.axiosStore.axios.post(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/signal", signalCommand)

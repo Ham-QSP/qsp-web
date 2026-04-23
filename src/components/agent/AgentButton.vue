@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {AgentConnection, ConnectionState, getAgents} from "@/components/agent/Signaling";
+import {type AgentDetail, AgentConnection, ConnectionState} from "@/components/agent/Signaling";
 import {useAgentStore} from "@/stores/Agent";
 import {useAuthentStore} from "@/stores/authent";
 
@@ -8,36 +8,12 @@ const agentStore = useAgentStore()
 const authentStore = useAuthentStore();
 
 const agentId = ref<AgentConnection>(new AgentConnection())
-const radioList = ref([])
+const agentList = ref<AgentDetail[]>([])
 
-function loadRadios() {
-  agentStore.getAgents().then( agents => {
-    const radioList = agents.data.map(agent => {
-      title: agent.name
-      subtitle: agent.description
-    })
-    console.log(radioList)
-
-    //TODO
-  })
-
-  radioList.value = [
-    {
-      title: 'Radio #1',
-      value: 1,
-      subtitle: 'This is the first radio'
-    },
-    {
-      title: 'Radio #2',
-      value: 2,
-      subtitle: 'This is the second radio'
-    },
-    {
-      title: 'Radio #3',
-      value: 3,
-      subtitle: 'This is the third radio'
-    },
-  ];
+async function loadRadios() {
+  agentList.value = await agentStore.getAgents();
+  console.log("loadRadios", agentList.value);
+  // TODO
 }
 
 loadRadios();
@@ -61,14 +37,16 @@ loadRadios();
     </template>
 
     <template v-slot:default="{ isActive }">
-      <v-card title="Agent">
+      <v-card title="Availables radios">
         <v-card-text>
-          <v-list :items="radioList" lines="three" item-props>
-            <template v-slot:subtitle="{ subtitle }">
-              <div v-html="subtitle"></div>
-            </template>
+          <v-list lines="two">
+            <v-list-item
+              v-for="agent in agentList"
+              :key="agent.id"
+              :title="agent.name"
+              :subtitle="agent.description"
+            />
           </v-list>
-
         </v-card-text>
 
         <v-card-actions>

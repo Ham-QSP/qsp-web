@@ -1,6 +1,9 @@
 export class AgentDetail {
   name = ""
   id = ""
+  description= ""
+  version = ""
+  type = ""
 }
 
 export class AgentConnection {
