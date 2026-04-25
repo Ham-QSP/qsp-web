@@ -21,14 +21,21 @@ const agentClick = async (agent: AgentDetail) => {
   dialogOpen.value = false
 }
 
+const disconnectClick = async () => {
+  agentStore.disconnectFromAgent();
+  dialogOpen.value = false;
+}
+
 </script>
 
 <template>
+  <div id="remoteTracks" />
   <v-dialog v-model="dialogOpen" max-width="500">
     <template v-slot:activator="{ props: activatorProps }">
 
       <v-btn prepend-icon="mdi-radio" rounded="xl" v-bind="activatorProps" :disabled="!authentStore.isAuthenticated()"
-        @click="loadRadios()">
+        @click="loadRadios()"
+      >
         <template v-slot:prepend>
           <v-icon></v-icon>
         </template>
@@ -41,8 +48,10 @@ const agentClick = async (agent: AgentDetail) => {
     </template>
 
     <template v-slot:default>
-      <v-card title="Availables radios">
-        <v-card-text>
+      <v-card
+        :title="agentConnectionState.state === ConnectionState.CONNECTED && agentConnectionState.agent ? agentConnectionState.agent.name : 'Transceivers'"
+      >
+        <v-card-text v-if="agentConnectionState.state === ConnectionState.NOT_CONNECTED" id="login-popup">
           <v-list lines="two">
             <v-list-item
               v-for="agent in agentList"
@@ -52,6 +61,9 @@ const agentClick = async (agent: AgentDetail) => {
               @click="agentClick(agent)"
             />
           </v-list>
+        </v-card-text>
+        <v-card-text v-else id="radio-popup">
+          <v-btn @click="disconnectClick">Disconnect</v-btn>
         </v-card-text>
 
         <v-card-actions>
