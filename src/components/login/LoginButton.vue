@@ -2,8 +2,10 @@
 
 import {getQspServerInfo} from "./QspServerInfo";
 import {useAuthentStore} from "@/stores/authent";
+import {useAgentStore} from "@/stores/Agent";
 
 const authentStore = useAuthentStore();
+const agentStore = useAgentStore();
 const serverInfoReady = ref(false);
 const serverInfoName = ref("[Loading...]");
 const serverInfoType = ref("");
@@ -11,16 +13,21 @@ const serverInfoVersion = ref("");
 const serverInfoDescription = ref("");
 
 const loginClick = () => {
-  authentStore.login()
+  if (authentStore.isAuthenticated()) {
+    getServerInfo();
+  }
+  else {
+    authentStore.login()
+  }
 }
 const logoutClick = () => {
   authentStore.logout();
 }
 
 function getServerInfo() {
-  getQspServerInfo().then(serverInfo => {
+  agentStore.getQspServerInfo().then(serverInfo => {
     serverInfoReady.value = true;
-    serverInfoName.value = serverInfo.name;
+    serverInfoName.value = serverInfo.serverName;
     serverInfoType.value = serverInfo.type;
     serverInfoVersion.value = serverInfo.version;
     serverInfoDescription.value = serverInfo.description;
