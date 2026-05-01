@@ -3,7 +3,7 @@ import {useAxiosStore} from "@/stores/Axios";
 import {AgentConnection, type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
 import {QspServerInfo} from "@/components/login/QspServerInfo";
 
-export const useAgentStore = defineStore('agent', {
+export const useAgentConnectionStore = defineStore('agentConnection', {
   state: () => {
     const agentConnectionState = ref<AgentConnection>(new AgentConnection())
     const peerConnection = ref<RTCPeerConnection | null>(null)
@@ -33,6 +33,20 @@ export const useAgentStore = defineStore('agent', {
         ],
       });
       this.peerConnection = pc;
+
+      const dataChannel = pc.createDataChannel("qsp-control");
+      let dataChannelMessageSent = false;
+      const sendDataChannelMessage = () => {
+        if (dataChannelMessageSent || dataChannel.readyState !== "open") return;
+        dataChannel.send("Hello from qsp-web client");
+        dataChannelMessageSent = true;
+      };
+
+      dataChannel.onopen = () => {
+        console.debug("Data channel open");
+        sendDataChannelMessage();
+      };
+
       const _this = this;
       pc.ontrack = function (event) {
         _this.changeConnectionState(ConnectionState.CONNECTED);
@@ -45,6 +59,11 @@ export const useAgentStore = defineStore('agent', {
       };
 
       pc.oniceconnectionstatechange = () => console.log(pc.iceConnectionState);
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "connected") {
+          sendDataChannelMessage();
+        }
+      };
       pc.onicecandidate = (event) => {
         if (event.candidate === null) {
           this.changeConnectionState(ConnectionState.SIGNALING);

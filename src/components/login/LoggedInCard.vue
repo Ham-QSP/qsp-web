@@ -9,11 +9,11 @@
     </v-card-text>
 
     <v-card-actions>
-      <v-spacer></v-spacer>
+      <v-spacer />
       <v-btn
         text="Close Dialog"
         @click="isActive.value = false"
-      ></v-btn>
+      />
     </v-card-actions>
   </v-card>
 </template>
