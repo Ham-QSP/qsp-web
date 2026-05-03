@@ -1,12 +1,6 @@
 import {defineStore} from 'pinia'
-
-export interface AgentControlMessage {
-  id: number
-  responseId: number
-  type: string
-  payload: string
-  createdAt: number
-}
+import {create, toBinary} from "@bufbuild/protobuf";
+import {AgentControlMessageSchema} from "@ham-qsp/proto-files";
 
 export enum VfoMode {
   AM = "AM",
@@ -52,6 +46,31 @@ export interface VfoState {
 
 export const useAgentControlStore = defineStore('agentControl', {
   state: () => {
-    return {}
+    const dataChannel = ref<RTCDataChannel | null>(null)
+    return {dataChannel: dataChannel}
+  },
+  actions: {
+    registerDataChannel(dataChannel: RTCDataChannel) {
+      this.dataChannel = dataChannel;
+
+      const helloMessage = create(AgentControlMessageSchema, {
+        id: 1n,
+        responseId: 0n,
+        payload: {
+          value: {
+            case: "hello",
+            value: {
+              protocolVersionMajor: 0,
+              protocolVersionMinor: 1,
+            },
+          },
+        },
+      });
+
+      dataChannel.send(toBinary(AgentControlMessageSchema, helloMessage));
+    },
+    messageReceived(message: string) {
+      console.debug("Agent control message received:", message)
+    },
   },
 })

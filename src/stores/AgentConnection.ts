@@ -2,13 +2,17 @@ import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {AgentConnection, type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
 import {QspServerInfo} from "@/components/login/QspServerInfo";
+import {useAgentControlStore} from "@/stores/agentControl";
 
 export const useAgentConnectionStore = defineStore('agentConnection', {
   state: () => {
     const agentConnectionState = ref<AgentConnection>(new AgentConnection())
     const peerConnection = ref<RTCPeerConnection | null>(null)
 
-    return {axiosStore: useAxiosStore(), agentConnectionState, peerConnection}
+    return {axiosStore: useAxiosStore(),
+      agentControlStore: useAgentControlStore(),
+      agentConnectionState,
+      peerConnection}
   },
   actions: {
     getAgents(): Promise<AgentDetail[]> {
@@ -35,17 +39,12 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       this.peerConnection = pc;
 
       const dataChannel = pc.createDataChannel("qsp-control");
-      let dataChannelMessageSent = false;
-      const sendDataChannelMessage = () => {
-        if (dataChannelMessageSent || dataChannel.readyState !== "open") return;
-        dataChannel.send("Hello from qsp-web client");
-        dataChannelMessageSent = true;
-      };
 
       dataChannel.onopen = () => {
         console.debug("Data channel open");
-        sendDataChannelMessage();
+        _this.agentControlStore.registerDataChannel(dataChannel);
       };
+      dataChannel.onmessage = (event) => { _this.agentControlStore.messageReceived(event.data)}
 
       const _this = this;
       pc.ontrack = function (event) {
@@ -59,11 +58,6 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       };
 
       pc.oniceconnectionstatechange = () => console.log(pc.iceConnectionState);
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "connected") {
-          sendDataChannelMessage();
-        }
-      };
       pc.onicecandidate = (event) => {
         if (event.candidate === null) {
           this.changeConnectionState(ConnectionState.SIGNALING);
