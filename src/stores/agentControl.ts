@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import {create, toBinary} from "@bufbuild/protobuf";
+import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
 import {AgentControlMessageSchema} from "@ham-qsp/proto-files";
 
 export enum VfoMode {
@@ -54,14 +54,15 @@ export const useAgentControlStore = defineStore('agentControl', {
       this.dataChannel = dataChannel;
 
       const helloMessage = create(AgentControlMessageSchema, {
-        id: 1n,
-        responseId: 0n,
-        payload: {
+        message: {
+          case: "agent",
           value: {
-            case: "hello",
-            value: {
-              protocolVersionMajor: 0,
-              protocolVersionMinor: 1,
+            agentMessage: {
+              case: "hello",
+              value: {
+                protocolVersionMajor: 1,
+                protocolVersionMinor: 0,
+              },
             },
           },
         },
@@ -69,8 +70,23 @@ export const useAgentControlStore = defineStore('agentControl', {
 
       dataChannel.send(toBinary(AgentControlMessageSchema, helloMessage));
     },
-    messageReceived(message: string) {
-      console.debug("Agent control message received:", message)
+    async messageReceived(message: string | Blob | ArrayBuffer | Uint8Array) {
+      if (typeof message === "string") {
+        console.warn("Agent control message received as string, expected protobuf bytes:", message);
+        return;
+      }
+
+      let bytes: Uint8Array;
+      if (message instanceof Blob) {
+        bytes = new Uint8Array(await message.arrayBuffer());
+      } else if (message instanceof ArrayBuffer) {
+        bytes = new Uint8Array(message);
+      } else {
+        bytes = message;
+      }
+
+      const protobufMessage = fromBinary(AgentControlMessageSchema, bytes);
+      console.debug("Agent control protobuf message received:", protobufMessage);
     },
   },
 })

@@ -12,7 +12,7 @@
     "lint": "eslint . --fix"
   },
   "dependencies": {
-    "@ham-qsp/proto-files": "^0.1.0",
+    "@ham-qsp/proto-files": "^0.1.1",
     "@mdi/font": "7.4",
     "axios": "^1.15",
     "core-js": "^3.37",
