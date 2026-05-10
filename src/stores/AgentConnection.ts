@@ -39,12 +39,14 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       this.peerConnection = pc;
 
       const dataChannel = pc.createDataChannel("qsp-control");
-
       dataChannel.onopen = () => {
         console.debug("Data channel open");
         _this.agentControlStore.registerDataChannel(dataChannel);
       };
       dataChannel.onmessage = (event) => { _this.agentControlStore.messageReceived(event.data)}
+      dataChannel.onclose = () => {
+        _this.agentControlStore.unregisterDataChannel();
+      }
 
       const _this = this;
       pc.ontrack = function (event) {

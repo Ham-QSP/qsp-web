@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import {storeToRefs} from 'pinia'
+import {useAgentControlStore} from '@/stores/agentControl'
+
 const props = withDefaults(defineProps<{
   backgroundColor?: string
   primaryTextColor?: string
@@ -14,7 +17,13 @@ const props = withDefaults(defineProps<{
 })
 
 const canvas = ref<HTMLCanvasElement | null>(null)
-const displayText = '00.000.00'
+const agentControlStore = useAgentControlStore()
+const {vfoState} = storeToRefs(agentControlStore)
+const frequency = computed(() => {
+  if (vfoState.value === null || vfoState.value.frequency === 0) return ''
+
+  return vfoState.value.frequency.toLocaleString('de-DE')
+})
 const displayFont = '"Roboto Mono", "SFMono-Regular", "Cascadia Mono", "Liberation Mono", Menlo, monospace'
 let resizeObserver: ResizeObserver | null = null
 
@@ -50,11 +59,17 @@ function drawDisplay() {
   context.strokeRect(20, 20, cssWidth - 40, cssHeight - 40)
   context.restore()
 
+  if (vfoState.value != null) {
+    drawDisplayFrequency(context);
+  }
+}
+
+function drawDisplayFrequency(context: CanvasRenderingContext2D) {
   context.font = `100px ${displayFont}`
   context.textAlign = 'left'
   context.textBaseline = 'top'
   context.fillStyle = props.primaryTextColor
-  context.fillText(displayText, 50, 50)
+  context.fillText(frequency.value, 50, 50)
 }
 
 onMounted(async () => {
@@ -73,6 +88,7 @@ onBeforeUnmount(() => {
 })
 
 watch(props, () => drawDisplay())
+watch(frequency, () => drawDisplay())
 </script>
 
 <template>

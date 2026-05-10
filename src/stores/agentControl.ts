@@ -47,11 +47,15 @@ export interface VfoState {
 export const useAgentControlStore = defineStore('agentControl', {
   state: () => {
     const dataChannel = ref<RTCDataChannel | null>(null)
-    return {dataChannel: dataChannel}
+    const vfoState = ref<VfoState | null>(null)
+    return {dataChannel: dataChannel, vfoState: vfoState}
   },
   actions: {
     registerDataChannel(dataChannel: RTCDataChannel) {
       this.dataChannel = dataChannel;
+      this.vfoState = {frequency: 0,
+        mode: VfoMode.AM,
+      };
 
       const helloMessage = create(AgentControlMessageSchema, {
         message: {
@@ -70,9 +74,17 @@ export const useAgentControlStore = defineStore('agentControl', {
 
       dataChannel.send(toBinary(AgentControlMessageSchema, helloMessage));
     },
+    unregisterDataChannel() {
+      this.dataChannel = null;
+      this.vfoState = null;
+    },
     async messageReceived(message: string | Blob | ArrayBuffer | Uint8Array) {
       if (typeof message === "string") {
         console.warn("Agent control message received as string, expected protobuf bytes:", message);
+        return;
+      }
+      if (this.vfoState === null) {
+        console.error("Webrtc message received but vfostate is undefined:");
         return;
       }
 
@@ -87,6 +99,13 @@ export const useAgentControlStore = defineStore('agentControl', {
 
       const protobufMessage = fromBinary(AgentControlMessageSchema, bytes);
       console.debug("Agent control protobuf message received:", protobufMessage);
+
+      if (protobufMessage.message.case === "transceiver") {
+        const transceiverMessage = protobufMessage.message.value.transceiverMessage;
+        if (transceiverMessage.case === "frequencyMessage") {
+          this.vfoState.frequency = Number(transceiverMessage.value.frequency);
+        }
+      }
     },
   },
 })
