@@ -1,6 +1,6 @@
 import {defineStore} from 'pinia'
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
-import {AgentControlMessageSchema} from "@ham-qsp/proto-files";
+import {AgentControlMessageSchema, TrxFrequencySchema} from "@ham-qsp/proto-files";
 
 export enum VfoMode {
   AM = "AM",
@@ -106,6 +106,45 @@ export const useAgentControlStore = defineStore('agentControl', {
           this.vfoState.frequency = Number(transceiverMessage.value.frequency);
         }
       }
+    },
+    setFrequency(frequency: number) {
+      if (this.dataChannel === null) {
+        console.warn("Cannot set frequency: no WebRTC data channel registered");
+        return;
+      }
+
+      if (this.dataChannel.readyState !== "open") {
+        console.warn("Cannot set frequency: WebRTC data channel is not open");
+        return;
+      }
+
+      const trxFrequency = create(TrxFrequencySchema, {
+        vfoId: 0,
+        frequency: BigInt(frequency),
+      });
+
+      const frequencyMessage = create(AgentControlMessageSchema, {
+        message: {
+          case: "transceiver",
+          value: {
+            transceiverMessage: {
+              case: "frequencyMessage",
+              value: trxFrequency,
+            },
+          },
+        },
+      });
+
+      this.dataChannel.send(toBinary(AgentControlMessageSchema, frequencyMessage));
+    },
+    increaseFrequency(increment: number) {
+      if (this.vfoState === null) {
+        console.warn("Cannot increase frequency: VFO state is undefined");
+        return;
+      }
+      const newFrequency = Number(this.vfoState.frequency + increment);
+      this.setFrequency(newFrequency);
+      this.vfoState.frequency = newFrequency;
     },
   },
 })

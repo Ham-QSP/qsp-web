@@ -15,6 +15,19 @@
 </template>
 
 <script lang="ts" setup>
+import {useInputDispatcherStore} from '@/stores/inputDispatcher'
 
+const inputDispatcherStore = useInputDispatcherStore()
+
+function handleKeydown(event: KeyboardEvent) {
+  inputDispatcherStore.dispatchKeyboardEvent(event)
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+})
 </script>
-
