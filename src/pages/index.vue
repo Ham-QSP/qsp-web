@@ -1,4 +1,5 @@
 <template>
+  <TransceiverControl />
   <HelloWorld />
 </template>
 

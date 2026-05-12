@@ -2,10 +2,10 @@
 
 import {getQspServerInfo} from "./QspServerInfo";
 import {useAuthentStore} from "@/stores/authent";
-import {useAgentStore} from "@/stores/Agent";
+import {useAgentConnectionStore} from "@/stores/AgentConnection";
 
 const authentStore = useAuthentStore();
-const agentStore = useAgentStore();
+const agentStore = useAgentConnectionStore();
 const serverInfoReady = ref(false);
 const serverInfoName = ref("[Loading...]");
 const serverInfoType = ref("");
@@ -36,14 +36,26 @@ function getServerInfo() {
 </script>
 
 <template>
-  <v-btn v-if="!authentStore.isAuthenticated()" prepend-icon="mdi-account-circle" rounded="xl" @click="loginClick" text="Log in"
-  ></v-btn>
-  <v-dialog v-else max-width="500" @after-enter="getServerInfo">
-    <template v-slot:activator="{ props: activatorProps }">
-
-      <v-btn prepend-icon="mdi-account-circle" rounded="xl" v-bind="activatorProps">
-        <template v-slot:prepend>
-          <v-icon></v-icon>
+  <v-btn
+    v-if="!authentStore.isAuthenticated()"
+    prepend-icon="mdi-account-circle"
+    rounded="xl"
+    text="Log in"
+    @click="loginClick"
+  />
+  <v-dialog
+    v-else
+    max-width="500"
+    @after-enter="getServerInfo"
+  >
+    <template #activator="{ props: activatorProps }">
+      <v-btn
+        prepend-icon="mdi-account-circle"
+        rounded="xl"
+        v-bind="activatorProps"
+      >
+        <template #prepend>
+          <v-icon />
         </template>
         <div>
           {{ authentStore.account.name }}
@@ -51,7 +63,7 @@ function getServerInfo() {
       </v-btn>
     </template>
 
-    <template v-slot:default="{ isActive }">
+    <template #default="{ isActive }">
       <v-card title="QSP Server">
         <v-card-text>
           <v-expansion-panels :disabled="!serverInfoReady">
@@ -61,23 +73,30 @@ function getServerInfo() {
               </v-expansion-panel-title>
               <v-expansion-panel-text>
                 <span>{{ serverInfoType }}</span>
-                <v-chip size="x-small">{{ serverInfoVersion }}</v-chip>
+                <v-chip size="x-small">
+                  {{ serverInfoVersion }}
+                </v-chip>
                 <p class="font-weight-light ml-2 text-body-2">
                   {{ serverInfoDescription }}
                 </p>
               </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
-
         </v-card-text>
 
         <v-card-actions>
-          <v-btn variant="outlined" color="error" @click="logoutClick()">Log out</v-btn>
-          <v-spacer></v-spacer>
+          <v-btn
+            variant="outlined"
+            color="error"
+            @click="logoutClick()"
+          >
+            Log out
+          </v-btn>
+          <v-spacer />
           <v-btn
             text="Close"
             @click="isActive.value = false"
-          ></v-btn>
+          />
         </v-card-actions>
       </v-card>
     </template>

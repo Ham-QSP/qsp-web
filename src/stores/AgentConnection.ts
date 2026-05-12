@@ -2,13 +2,17 @@ import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {AgentConnection, type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
 import {QspServerInfo} from "@/components/login/QspServerInfo";
+import {useAgentControlStore} from "@/stores/agentControl";
 
-export const useAgentStore = defineStore('agent', {
+export const useAgentConnectionStore = defineStore('agentConnection', {
   state: () => {
     const agentConnectionState = ref<AgentConnection>(new AgentConnection())
     const peerConnection = ref<RTCPeerConnection | null>(null)
 
-    return {axiosStore: useAxiosStore(), agentConnectionState, peerConnection}
+    return {axiosStore: useAxiosStore(),
+      agentControlStore: useAgentControlStore(),
+      agentConnectionState,
+      peerConnection}
   },
   actions: {
     getAgents(): Promise<AgentDetail[]> {
@@ -33,6 +37,17 @@ export const useAgentStore = defineStore('agent', {
         ],
       });
       this.peerConnection = pc;
+
+      const dataChannel = pc.createDataChannel("qsp-control");
+      dataChannel.onopen = () => {
+        console.debug("Data channel open");
+        _this.agentControlStore.registerDataChannel(dataChannel);
+      };
+      dataChannel.onmessage = (event) => { _this.agentControlStore.messageReceived(event.data)}
+      dataChannel.onclose = () => {
+        _this.agentControlStore.unregisterDataChannel();
+      }
+
       const _this = this;
       pc.ontrack = function (event) {
         _this.changeConnectionState(ConnectionState.CONNECTED);
