@@ -177,16 +177,15 @@ export const useAuthentStore = defineStore('authent', {
       this.codeVerifier = verifier;
 
       const params = new URLSearchParams();
-      params.append("client_id", "oidc-client");
+      params.append("client_id", "portal");
       params.append("redirect_uri", "http://localhost:3000/src/assets/login-redirect.html");
-      //params.append("audience", auth0ApiAudience);
       params.append("response_type", "code");
       params.append("scope", "openid");
       params.append("code_challenge", challenge);
       params.append("code_challenge_method", "S256");
-      params.append("state", "AZERTY");
+      params.append("state", "AZERTY"); //fixme Use real state
 
-      const url = new URL(`http://localhost:9000/oauth2/authorize?${params.toString()}`);
+      const url = new URL(`http://192.168.10.40:81/auth/oauth2/authorize?${params.toString()}`);
       const handle = window.open(
         url.toString(),
         "qsp-login",
@@ -225,19 +224,19 @@ export const useAuthentStore = defineStore('authent', {
     getTokenFromAuthorizationCode(code: string) : Promise<TokenResponse> {
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
-      params.append('client_id', 'oidc-client');
+      params.append('client_id', 'portal');
       params.append('code_verifier', this.codeVerifier);
       params.append('code', code);
       params.append('redirect_uri', 'http://localhost:3000/src/assets/login-redirect.html');
-      return axios.post("http://localhost:9000/oauth2/token", params);
+      return axios.post("http://192.168.10.40:81/auth/oauth2/token", params);
     },
 
     getTokenFromARefreshToken(refreshToken: string) : Promise<TokenResponse> {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
-      params.append('client_id', 'oidc-client');
+      params.append('client_id', 'portal');
       params.append('refresh_token', refreshToken);
-      return axios.post("http://localhost:9000/oauth2/token", params);
+      return axios.post("http://192.168.10.40:81/auth/oauth2/token", params);
     },
 
     async validateOrRefreshToken(tokenResponse: TokenResponse) {
