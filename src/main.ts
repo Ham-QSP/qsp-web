@@ -13,6 +13,7 @@ import App from './App.vue'
 // Composables
 import {createApp} from 'vue'
 import {useAuthentStore} from "@/stores/authent";
+import type {AppConfig} from "@/AppConfig";
 
 
 const app = createApp(App)
@@ -20,7 +21,7 @@ const app = createApp(App)
 
 fetch("/config.json")
   .then((response) => response.json())
-  .then((config) => {
+  .then((config: AppConfig) => {
     app.config.globalProperties.config = config
 
     registerPlugins(app)

@@ -1,5 +1,5 @@
 import {defineStore} from 'pinia'
-import axios, {type AxiosInstance} from "axios";
+import axios, {type AxiosInstance, type AxiosResponse} from "axios";
 
 const STORAGE_TOKEN = 'tokenResponse';
 
@@ -122,6 +122,20 @@ export const useAuthentStore = defineStore('authent', {
   },
 
   actions: {
+    authenticationUrl(path: string): string {
+      if (!this.config.authenticationServerPrefix) {
+        throw new Error("Authentication server prefix is not configured");
+      }
+
+      return this.config.authenticationServerPrefix + path;
+    },
+    loginRedirectUrl(): string {
+      if (!this.config.portalUrl) {
+        throw new Error("Portal URL is not configured");
+      }
+
+      return this.config.portalUrl + "/src/assets/login-redirect.html";
+    },
     async init() {
       console.log("Auth: init");
 
@@ -178,14 +192,14 @@ export const useAuthentStore = defineStore('authent', {
 
       const params = new URLSearchParams();
       params.append("client_id", "portal");
-      params.append("redirect_uri", "http://localhost:3000/src/assets/login-redirect.html");
+      params.append("redirect_uri", this.loginRedirectUrl());
       params.append("response_type", "code");
       params.append("scope", "openid");
       params.append("code_challenge", challenge);
       params.append("code_challenge_method", "S256");
       params.append("state", "AZERTY"); //fixme Use real state
 
-      const url = new URL(`http://192.168.10.40:81/auth/oauth2/authorize?${params.toString()}`);
+      const url = new URL(this.authenticationUrl(`/oauth2/authorize?${params.toString()}`));
       const handle = window.open(
         url.toString(),
         "qsp-login",
@@ -221,22 +235,22 @@ export const useAuthentStore = defineStore('authent', {
       return this.loginState === LoginState.AUTHENTICATED;
     },
 
-    getTokenFromAuthorizationCode(code: string) : Promise<TokenResponse> {
+    getTokenFromAuthorizationCode(code: string) : Promise<AxiosResponse<TokenResponse>> {
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
       params.append('client_id', 'portal');
       params.append('code_verifier', this.codeVerifier);
       params.append('code', code);
-      params.append('redirect_uri', 'http://localhost:3000/src/assets/login-redirect.html');
-      return axios.post("http://192.168.10.40:81/auth/oauth2/token", params);
+      params.append('redirect_uri', this.loginRedirectUrl());
+      return axios.post<TokenResponse>(this.authenticationUrl("/oauth2/token"), params);
     },
 
-    getTokenFromARefreshToken(refreshToken: string) : Promise<TokenResponse> {
+    getTokenFromARefreshToken(refreshToken: string) : Promise<AxiosResponse<TokenResponse>> {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
       params.append('client_id', 'portal');
       params.append('refresh_token', refreshToken);
-      return axios.post("http://192.168.10.40:81/auth/oauth2/token", params);
+      return axios.post<TokenResponse>(this.authenticationUrl("/oauth2/token"), params);
     },
 
     async validateOrRefreshToken(tokenResponse: TokenResponse) {

@@ -15,14 +15,21 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       peerConnection}
   },
   actions: {
+    signalingUrl(path: string): string {
+      if (!this.config.signalingServerPrefix) {
+        throw new Error("Signaling server prefix is not configured");
+      }
+
+      return this.config.signalingServerPrefix + path;
+    },
     getAgents(): Promise<AgentDetail[]> {
       return this.axiosStore.axios
-        .get<AgentDetail[]>(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents")
+        .get<AgentDetail[]>(this.signalingUrl("/client/agents"))
         .then((response) => response.data);
     },
     async getQspServerInfo(): Promise<QspServerInfo> {
       const response = await this.axiosStore.axios
-        .get<QspServerInfo>(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/server/description");
+        .get<QspServerInfo>(this.signalingUrl("/server/description"));
       return response.data;
     },
     connectToAgent(agent: AgentDetail) {
@@ -68,7 +75,7 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
             agentSessionId: agent.id,
             clientSdp: pc.localDescription?.sdp,
           };
-          const signalResponse = this.axiosStore.axios.post(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/signal", signalCommand);
+          const signalResponse = this.axiosStore.axios.post(this.signalingUrl("/client/signal"), signalCommand);
           signalResponse
             .then((response) => {
               this.changeConnectionState(ConnectionState.SESSION_EXCHANGE)

@@ -1,2 +1,5 @@
 {
+  "signalingServerPrefix": "http://192.168.10.40:81/signaling",
+  "authenticationServerPrefix": "http://192.168.10.40:81/auth",
+  "portalUrl": "http://localhost:3000"
 }
