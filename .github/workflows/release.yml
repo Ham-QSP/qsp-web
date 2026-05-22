@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version to release, for example 1.2.3"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    env:
+      VERSION: ${{ inputs.version }}
+      RELEASE_TAG: v${{ inputs.version }}
+      ARCHIVE_NAME: qsp-web-${{ inputs.version }}.tar.xz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate SemVer version
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::version must be a SemVer value such as 1.2.3, 1.2.3-rc.1, or 1.2.3+build.1"
+            exit 1
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          registry-url: https://npm.pkg.github.com
+          scope: "@ham-qsp"
+
+      - name: Configure GitHub Packages
+        run: |
+          echo "@ham-qsp:registry=https://npm.pkg.github.com" >> "$HOME/.npmrc"
+          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$HOME/.npmrc"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn install --frozen-lockfile --non-interactive
+
+      - name: Build production bundle
+        run: yarn build-only
+
+      - name: Build release archive
+        run: |
+          rm -rf release
+          mkdir -p release/root
+          cp -R dist/. release/root/
+          cp README.md COPYING release/root/
+          tar -C release/root -cJf "$ARCHIVE_NAME" .
+
+      - name: Publish GitHub release
+        run: |
+          gh release create "$RELEASE_TAG" "$ARCHIVE_NAME" \
+            --title "qsp-web $RELEASE_TAG" \
+            --notes "Production build for qsp-web $RELEASE_TAG."
+        env:
+          GH_TOKEN: ${{ github.token }}
