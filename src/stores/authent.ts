@@ -19,6 +19,7 @@ import {defineStore} from 'pinia'
 import axios, {type AxiosInstance, type AxiosResponse} from "axios";
 
 const STORAGE_TOKEN = 'tokenResponse';
+const STORAGE_AUTH_STATE = 'authState';
 
 class AuthentAccount {
   name: string = ""
@@ -26,7 +27,8 @@ class AuthentAccount {
 
 interface AuthenticationBroadcastMessage {
   action: string;
-  code: string;
+  code?: string;
+  error?: string;
 }
 
 interface TokenResponse {
@@ -53,6 +55,12 @@ export function getCryptoSubtle(): SubtleCrypto {
 
 }
 export async function generateCodeVerifier(): Promise<string> {
+  const rando = randomCode();
+  const encoded = base64URLEncode(rando);
+  return encoded;
+
+}
+export async function generateState(): Promise<string> {
   const rando = randomCode();
   const encoded = base64URLEncode(rando);
   return encoded;
@@ -161,13 +169,16 @@ export const useAuthentStore = defineStore('authent', {
       const bc = new BroadcastChannel("authent_popup");
       bc.onmessage = async (message) => {
         const authMessage: AuthenticationBroadcastMessage = JSON.parse(message.data);
-        if (authMessage.action === "AUTHORIZATION_CODE" && this.loginState === LoginState.REDIRECT_START) {
+        if (authMessage.action === "AUTHORIZATION_CODE" && authMessage.code && this.loginState === LoginState.REDIRECT_START) {
           this.loginState = LoginState.REDIRECT_SUCCESS;
           console.log("Auth: Received authorization code: " + authMessage.code);
            this.getTokenFromAuthorizationCode(authMessage.code).then((token) => {
              console.debug("Auth: Get Auth response.");
              this.handleSuccessTokenResponseAcquisition(token.data);
            })
+        } else if (authMessage.action === "AUTHENTICATION_ERROR") {
+          console.error("Auth: Authentication redirect failed: " + authMessage.error);
+          this.loginState = LoginState.IDLE;
         } else {
           console.log("Auth: Invalid authentication state / message combination. State: " + this.loginState + " Message: " + message.data + "");
           this.loginState = LoginState.IDLE;
@@ -205,7 +216,9 @@ export const useAuthentStore = defineStore('authent', {
       const windowFeatures = "popup,width=400,height=500";
       const verifier = await generateCodeVerifier();
       const challenge = await generateChallenge(verifier);
+      const state = await generateState();
       this.codeVerifier = verifier;
+      localStorage.setItem(STORAGE_AUTH_STATE, state);
 
       const params = new URLSearchParams();
       params.append("client_id", "portal");
@@ -214,7 +227,7 @@ export const useAuthentStore = defineStore('authent', {
       params.append("scope", "openid");
       params.append("code_challenge", challenge);
       params.append("code_challenge_method", "S256");
-      params.append("state", "AZERTY"); //fixme Use real state
+      params.append("state", state);
 
       const url = new URL(this.authenticationUrl(`/oauth2/authorize?${params.toString()}`));
       const handle = window.open(
@@ -224,6 +237,7 @@ export const useAuthentStore = defineStore('authent', {
       );
       if (!handle) {
         console.log("Auth: login: window not opened");
+        localStorage.removeItem(STORAGE_AUTH_STATE);
         //TODO handle error
         this.loginState = LoginState.IDLE;
       }
@@ -243,6 +257,7 @@ export const useAuthentStore = defineStore('authent', {
     async logout() {
       console.log("Auth: logout");
       localStorage.removeItem(STORAGE_TOKEN);
+      localStorage.removeItem(STORAGE_AUTH_STATE);
       this.tokenResponse = null;
       this.account = null;
       this.loginState = LoginState.IDLE;
