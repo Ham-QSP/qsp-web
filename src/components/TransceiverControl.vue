@@ -109,9 +109,19 @@ watch(frequency, () => drawDisplay())
 </script>
 
 <template>
-  <div class="transceiver-control">
-    <canvas ref="canvas" />
-  </div>
+  <canvas ref="canvas" class="transceiver-control" />
+  <v-container class="">
+    <v-responsive
+      class="align-centerfill-height mx-auto"
+      max-width="900"
+    >
+
+      <div class="text-center">
+        <div class="text-body-2 font-weight-light mb-n1">
+        </div>
+      </div>
+    </v-responsive>
+  </v-container>
 </template>
 
 <style scoped lang="sass">
