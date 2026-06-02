@@ -121,6 +121,9 @@ export const useAgentControlStore = defineStore('agentControl', {
         if (transceiverMessage.case === "frequencyMessage") {
           this.vfoState.frequency = Number(transceiverMessage.value.frequency);
         }
+        else if (transceiverMessage.case === "trxCapabilities") {
+          console.debug(transceiverMessage.value);
+        }
       }
     },
     setFrequency(frequency: number) {
