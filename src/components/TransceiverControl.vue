@@ -1,3 +1,20 @@
+<!--
+    Copyright (C) 2026 Florian MAZEN
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+
 <script setup lang="ts">
 import {storeToRefs} from 'pinia'
 import {useAgentControlStore} from '@/stores/agentControl'
@@ -92,9 +109,19 @@ watch(frequency, () => drawDisplay())
 </script>
 
 <template>
-  <div class="transceiver-control">
-    <canvas ref="canvas" />
-  </div>
+  <canvas ref="canvas" class="transceiver-control" />
+  <v-container class="">
+    <v-responsive
+      class="align-centerfill-height mx-auto"
+      max-width="900"
+    >
+
+      <div class="text-center">
+        <div class="text-body-2 font-weight-light mb-n1">
+        </div>
+      </div>
+    </v-responsive>
+  </v-container>
 </template>
 
 <style scoped lang="sass">

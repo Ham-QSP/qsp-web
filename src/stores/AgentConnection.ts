@@ -1,3 +1,20 @@
+/*
+    Copyright (C) 2026 Florian MAZEN
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {AgentConnection, type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
@@ -15,14 +32,21 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       peerConnection}
   },
   actions: {
+    signalingUrl(path: string): string {
+      if (!this.config.signalingServerPrefix) {
+        throw new Error("Signaling server prefix is not configured");
+      }
+
+      return this.config.signalingServerPrefix + path;
+    },
     getAgents(): Promise<AgentDetail[]> {
       return this.axiosStore.axios
-        .get<AgentDetail[]>(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/agents")
+        .get<AgentDetail[]>(this.signalingUrl("/client/agents"))
         .then((response) => response.data);
     },
     async getQspServerInfo(): Promise<QspServerInfo> {
       const response = await this.axiosStore.axios
-        .get<QspServerInfo>(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/server/description");
+        .get<QspServerInfo>(this.signalingUrl("/server/description"));
       return response.data;
     },
     connectToAgent(agent: AgentDetail) {
@@ -68,7 +92,7 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
             agentSessionId: agent.id,
             clientSdp: pc.localDescription?.sdp,
           };
-          const signalResponse = this.axiosStore.axios.post(import.meta.env.VITE_SIGNALING_SERVER_PREFIX + "/client/signal", signalCommand);
+          const signalResponse = this.axiosStore.axios.post(this.signalingUrl("/client/signal"), signalCommand);
           signalResponse
             .then((response) => {
               this.changeConnectionState(ConnectionState.SESSION_EXCHANGE)

@@ -1,7 +1,25 @@
+/*
+    Copyright (C) 2026 Florian MAZEN
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import {defineStore} from 'pinia'
-import axios, {type AxiosInstance} from "axios";
+import axios, {type AxiosInstance, type AxiosResponse} from "axios";
 
 const STORAGE_TOKEN = 'tokenResponse';
+const STORAGE_AUTH_STATE = 'authState';
 
 class AuthentAccount {
   name: string = ""
@@ -9,7 +27,8 @@ class AuthentAccount {
 
 interface AuthenticationBroadcastMessage {
   action: string;
-  code: string;
+  code?: string;
+  error?: string;
 }
 
 interface TokenResponse {
@@ -36,6 +55,12 @@ export function getCryptoSubtle(): SubtleCrypto {
 
 }
 export async function generateCodeVerifier(): Promise<string> {
+  const rando = randomCode();
+  const encoded = base64URLEncode(rando);
+  return encoded;
+
+}
+export async function generateState(): Promise<string> {
   const rando = randomCode();
   const encoded = base64URLEncode(rando);
   return encoded;
@@ -122,6 +147,20 @@ export const useAuthentStore = defineStore('authent', {
   },
 
   actions: {
+    authenticationUrl(path: string): string {
+      if (!this.config.authenticationServerPrefix) {
+        throw new Error("Authentication server prefix is not configured");
+      }
+
+      return this.config.authenticationServerPrefix + path;
+    },
+    loginRedirectUrl(): string {
+      if (!this.config.portalUrl) {
+        throw new Error("Portal URL is not configured");
+      }
+
+      return this.config.portalUrl + "/src/assets/login-redirect.html";
+    },
     async init() {
       console.log("Auth: init");
 
@@ -130,13 +169,16 @@ export const useAuthentStore = defineStore('authent', {
       const bc = new BroadcastChannel("authent_popup");
       bc.onmessage = async (message) => {
         const authMessage: AuthenticationBroadcastMessage = JSON.parse(message.data);
-        if (authMessage.action === "AUTHORIZATION_CODE" && this.loginState === LoginState.REDIRECT_START) {
+        if (authMessage.action === "AUTHORIZATION_CODE" && authMessage.code && this.loginState === LoginState.REDIRECT_START) {
           this.loginState = LoginState.REDIRECT_SUCCESS;
           console.log("Auth: Received authorization code: " + authMessage.code);
            this.getTokenFromAuthorizationCode(authMessage.code).then((token) => {
              console.debug("Auth: Get Auth response.");
              this.handleSuccessTokenResponseAcquisition(token.data);
            })
+        } else if (authMessage.action === "AUTHENTICATION_ERROR") {
+          console.error("Auth: Authentication redirect failed: " + authMessage.error);
+          this.loginState = LoginState.IDLE;
         } else {
           console.log("Auth: Invalid authentication state / message combination. State: " + this.loginState + " Message: " + message.data + "");
           this.loginState = LoginState.IDLE;
@@ -174,19 +216,20 @@ export const useAuthentStore = defineStore('authent', {
       const windowFeatures = "popup,width=400,height=500";
       const verifier = await generateCodeVerifier();
       const challenge = await generateChallenge(verifier);
+      const state = await generateState();
       this.codeVerifier = verifier;
+      localStorage.setItem(STORAGE_AUTH_STATE, state);
 
       const params = new URLSearchParams();
-      params.append("client_id", "oidc-client");
-      params.append("redirect_uri", "http://localhost:3000/src/assets/login-redirect.html");
-      //params.append("audience", auth0ApiAudience);
+      params.append("client_id", "portal");
+      params.append("redirect_uri", this.loginRedirectUrl());
       params.append("response_type", "code");
       params.append("scope", "openid");
       params.append("code_challenge", challenge);
       params.append("code_challenge_method", "S256");
-      params.append("state", "AZERTY");
+      params.append("state", state);
 
-      const url = new URL(`http://localhost:9000/oauth2/authorize?${params.toString()}`);
+      const url = new URL(this.authenticationUrl(`/oauth2/authorize?${params.toString()}`));
       const handle = window.open(
         url.toString(),
         "qsp-login",
@@ -194,6 +237,7 @@ export const useAuthentStore = defineStore('authent', {
       );
       if (!handle) {
         console.log("Auth: login: window not opened");
+        localStorage.removeItem(STORAGE_AUTH_STATE);
         //TODO handle error
         this.loginState = LoginState.IDLE;
       }
@@ -213,6 +257,7 @@ export const useAuthentStore = defineStore('authent', {
     async logout() {
       console.log("Auth: logout");
       localStorage.removeItem(STORAGE_TOKEN);
+      localStorage.removeItem(STORAGE_AUTH_STATE);
       this.tokenResponse = null;
       this.account = null;
       this.loginState = LoginState.IDLE;
@@ -222,22 +267,22 @@ export const useAuthentStore = defineStore('authent', {
       return this.loginState === LoginState.AUTHENTICATED;
     },
 
-    getTokenFromAuthorizationCode(code: string) : Promise<TokenResponse> {
+    getTokenFromAuthorizationCode(code: string) : Promise<AxiosResponse<TokenResponse>> {
       const params = new URLSearchParams();
       params.append('grant_type', 'authorization_code');
-      params.append('client_id', 'oidc-client');
+      params.append('client_id', 'portal');
       params.append('code_verifier', this.codeVerifier);
       params.append('code', code);
-      params.append('redirect_uri', 'http://localhost:3000/src/assets/login-redirect.html');
-      return axios.post("http://localhost:9000/oauth2/token", params);
+      params.append('redirect_uri', this.loginRedirectUrl());
+      return axios.post<TokenResponse>(this.authenticationUrl("/oauth2/token"), params);
     },
 
-    getTokenFromARefreshToken(refreshToken: string) : Promise<TokenResponse> {
+    getTokenFromARefreshToken(refreshToken: string) : Promise<AxiosResponse<TokenResponse>> {
       const params = new URLSearchParams();
       params.append('grant_type', 'refresh_token');
-      params.append('client_id', 'oidc-client');
+      params.append('client_id', 'portal');
       params.append('refresh_token', refreshToken);
-      return axios.post("http://localhost:9000/oauth2/token", params);
+      return axios.post<TokenResponse>(this.authenticationUrl("/oauth2/token"), params);
     },
 
     async validateOrRefreshToken(tokenResponse: TokenResponse) {
