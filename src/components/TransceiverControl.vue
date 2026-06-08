@@ -46,8 +46,8 @@ const frequency = computed(() => {
 
   return vfoState.value.frequency.toLocaleString('de-DE')
 })
+const mode = computed(() => vfoState.value?.mode ?? '')
 const displayFont = '"Roboto Mono", "SFMono-Regular", "Cascadia Mono", "Liberation Mono", Menlo, monospace'
-const mode = "USB";
 const layoutParameter: LayoutParameter = {
   rootMargin: 20,
   rootPadding: 20,
@@ -221,7 +221,7 @@ function drawMode(context: CanvasRenderingContext2D, modeContainerNode: Node, mo
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.fillStyle = props.highlightTextColor
-  context.fillText(mode, modeLeft + modeLayout.width / 2, modeTop + modeLayout.height / 2)
+  context.fillText(mode.value, modeLeft + modeLayout.width / 2, modeTop + modeLayout.height / 2)
 }
 
 onMounted(async () => {
@@ -243,6 +243,7 @@ onBeforeUnmount(() => {
 
 watch(props, () => drawDisplay())
 watch(frequency, () => drawDisplay())
+watch(mode, () => drawDisplay())
 </script>
 
 <template>

@@ -16,7 +16,15 @@
  */
 import {defineStore} from 'pinia'
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
-import {AgentControlMessageSchema, TrxFrequencySchema} from "@ham-qsp/proto-files";
+import {
+  AgentControlMessageSchema,
+  RigAntenna,
+  RigVfoFlag,
+  TrxFrequencySchema,
+  TrxVfoMode,
+  type RigFrequencyRange,
+  type TrxCapabilities,
+} from "@ham-qsp/proto-files";
 
 export enum VfoMode {
   AM = "AM",
@@ -60,11 +68,91 @@ export interface VfoState {
   mode: VfoMode
 }
 
+export interface TransceiverFrequencyRange {
+  listId: number
+  lowerFrequencyHz: bigint
+  upperFrequencyHz: bigint
+  modes: VfoMode[]
+  vfo: RigVfoFlag[]
+  antenna: RigAntenna[]
+  label?: string
+}
+
+export interface TransceiverCapabilities {
+  rigModel: number
+  modelName: string
+  manufacturerName: string
+  rxFrequencyRanges: TransceiverFrequencyRange[]
+  txFrequencyRanges: TransceiverFrequencyRange[]
+}
+
+const vfoModeByTrxMode: Partial<Record<TrxVfoMode, VfoMode>> = {
+  [TrxVfoMode.AM]: VfoMode.AM,
+  [TrxVfoMode.CW]: VfoMode.CW,
+  [TrxVfoMode.USB]: VfoMode.USB,
+  [TrxVfoMode.LSB]: VfoMode.LSB,
+  [TrxVfoMode.RTTY]: VfoMode.RTTY,
+  [TrxVfoMode.FM]: VfoMode.FM,
+  [TrxVfoMode.WFM]: VfoMode.WFM,
+  [TrxVfoMode.CWR]: VfoMode.CWR,
+  [TrxVfoMode.RTTYR]: VfoMode.RTTYR,
+  [TrxVfoMode.AMS]: VfoMode.AMS,
+  [TrxVfoMode.PKTLSB]: VfoMode.PKTLSB,
+  [TrxVfoMode.PKTUSB]: VfoMode.PKTUSB,
+  [TrxVfoMode.PKTFM]: VfoMode.PKTFM,
+  [TrxVfoMode.ECSSUSB]: VfoMode.ECSSUSB,
+  [TrxVfoMode.EXSSLSB]: VfoMode.EXSSLSB,
+  [TrxVfoMode.FAX]: VfoMode.FAX,
+  [TrxVfoMode.SAM]: VfoMode.SAM,
+  [TrxVfoMode.DSB]: VfoMode.DSB,
+  [TrxVfoMode.FMN]: VfoMode.FMN,
+  [TrxVfoMode.PKTAM]: VfoMode.PKTAM,
+  [TrxVfoMode.P25]: VfoMode.P25,
+  [TrxVfoMode.DSTAR]: VfoMode.DSTAR,
+  [TrxVfoMode.DPMR]: VfoMode.DPMR,
+  [TrxVfoMode.NXDNVN]: VfoMode.NXDNVN,
+  [TrxVfoMode.NXDN_N]: VfoMode.NXDN_N,
+  [TrxVfoMode.DCR]: VfoMode.DCR,
+  [TrxVfoMode.AMN]: VfoMode.AMN,
+  [TrxVfoMode.PSK]: VfoMode.PSK,
+  [TrxVfoMode.PSKR]: VfoMode.PSKR,
+  [TrxVfoMode.DD]: VfoMode.DD,
+  [TrxVfoMode.C4FM]: VfoMode.C4FM,
+  [TrxVfoMode.PKTFMN]: VfoMode.PKTFMN,
+  [TrxVfoMode.SPEC]: VfoMode.SPEC,
+  [TrxVfoMode.CWN]: VfoMode.CWN,
+}
+
+function mapFrequencyRange(range: RigFrequencyRange): TransceiverFrequencyRange {
+  return {
+    listId: range.listId,
+    lowerFrequencyHz: range.lowerFrequencyHz,
+    upperFrequencyHz: range.upperFrequencyHz,
+    modes: range.modes
+      .map(mode => vfoModeByTrxMode[mode])
+      .filter((mode): mode is VfoMode => mode !== undefined),
+    vfo: [...range.vfo],
+    antenna: [...range.antenna],
+    label: range.label,
+  }
+}
+
+function mapTransceiverCapabilities(capabilities: TrxCapabilities): TransceiverCapabilities {
+  return {
+    rigModel: capabilities.rigModel,
+    modelName: capabilities.modelName,
+    manufacturerName: capabilities.manufacturerName,
+    rxFrequencyRanges: capabilities.rxFrequencyRanges.map(mapFrequencyRange),
+    txFrequencyRanges: capabilities.txFrequencyRanges.map(mapFrequencyRange),
+  }
+}
+
 export const useAgentControlStore = defineStore('agentControl', {
   state: () => {
     const dataChannel = ref<RTCDataChannel | null>(null)
     const vfoState = ref<VfoState | null>(null)
-    return {dataChannel: dataChannel, vfoState: vfoState}
+    const transceiverCapabilities = ref<TransceiverCapabilities | null>(null)
+    return {dataChannel: dataChannel, vfoState: vfoState, transceiverCapabilities: transceiverCapabilities}
   },
   actions: {
     registerDataChannel(dataChannel: RTCDataChannel) {
@@ -72,6 +160,7 @@ export const useAgentControlStore = defineStore('agentControl', {
       this.vfoState = {frequency: 0,
         mode: VfoMode.AM,
       };
+      this.transceiverCapabilities = null;
 
       const helloMessage = create(AgentControlMessageSchema, {
         message: {
@@ -93,6 +182,7 @@ export const useAgentControlStore = defineStore('agentControl', {
     unregisterDataChannel() {
       this.dataChannel = null;
       this.vfoState = null;
+      this.transceiverCapabilities = null;
     },
     async messageReceived(message: string | Blob | ArrayBuffer | Uint8Array) {
       if (typeof message === "string") {
@@ -122,7 +212,8 @@ export const useAgentControlStore = defineStore('agentControl', {
           this.vfoState.frequency = Number(transceiverMessage.value.frequency);
         }
         else if (transceiverMessage.case === "trxCapabilities") {
-          console.debug(transceiverMessage.value);
+          this.transceiverCapabilities = mapTransceiverCapabilities(transceiverMessage.value);
+          console.log("Capabilities: {}", this.transceiverCapabilities);
         }
       }
     },
