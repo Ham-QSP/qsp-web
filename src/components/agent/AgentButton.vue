@@ -20,9 +20,12 @@ import {storeToRefs} from "pinia";
 import {type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
 import {useAuthentStore} from "@/stores/authent";
+import {useAgentControlStore} from "@/stores/agentControl";
 
 const agentStore = useAgentConnectionStore()
 const {agentConnectionState} = storeToRefs(agentStore)
+const agentControlStore = useAgentControlStore()
+const {transceiverCapabilities} = storeToRefs(agentControlStore)
 
 const authentStore = useAuthentStore();
 
@@ -72,10 +75,10 @@ const disconnectClick = async () => {
 
     <template #default>
       <v-card
-        :title="agentConnectionState.state === ConnectionState.CONNECTED && agentConnectionState.agent ? agentConnectionState.agent.name : 'Transceivers'"
+        v-if="agentConnectionState.state === ConnectionState.NOT_CONNECTED"
+        :title="'Transceivers'"
       >
         <v-card-text
-          v-if="agentConnectionState.state === ConnectionState.NOT_CONNECTED"
           id="login-popup"
         >
           <v-list lines="two">
@@ -88,16 +91,35 @@ const disconnectClick = async () => {
             />
           </v-list>
         </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            text="Close"
+            @click="dialogOpen = false"
+          />
+        </v-card-actions>
+      </v-card>
+<!-- -->
+      <v-card
+        v-else
+        :title="agentConnectionState.agent ? agentConnectionState.agent.name : '<Unknow>'"
+      >
         <v-card-text
-          v-else
           id="radio-popup"
         >
-          <v-btn @click="disconnectClick">
-            Disconnect
-          </v-btn>
+          <span id="trx-brand">
+            {{ transceiverCapabilities?.manufacturerName ?? '' }}
+          </span>
+          <span id="trx-model">
+            {{ transceiverCapabilities?.modelName ?? '' }}
+          </span>
         </v-card-text>
 
         <v-card-actions>
+          <v-btn @click="disconnectClick" color="error">
+            Disconnect
+          </v-btn>
           <v-spacer />
           <v-btn
             text="Close"
@@ -110,5 +132,8 @@ const disconnectClick = async () => {
 </template>
 
 <style scoped lang="sass">
-
+#trx-brand
+  font-size: 1.5rem
+  font-weight: 600
+  margin-right: 10px
 </style>

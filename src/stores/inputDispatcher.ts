@@ -18,11 +18,13 @@
 import {defineStore} from 'pinia'
 import {useAgentControlStore} from '@/stores/agentControl'
 
-export type InputAction = 'frequ_up' | 'frequ_down' | 'frequ_up_fine' | 'frequ_down_fine' | 'test'
+export type InputAction = 'frequ_up' | 'frequ_down' | 'frequ_up_fine' | 'frequ_down_fine' | 'mode_next' | 'test'
 
 interface KeyboardShortcut {
-  code: string
+  code?: string
+  key?: string
   shiftKey?: boolean
+  ctrlKey?: boolean
 }
 
 type KeyboardMapping = Record<InputAction, KeyboardShortcut>
@@ -42,6 +44,10 @@ const DEFAULT_KEYBOARD_MAPPING: KeyboardMapping = {
   frequ_down_fine: {
     code: 'ArrowDown',
     shiftKey: true,
+  },
+  mode_next: {
+    key: 'm',
+    ctrlKey: true,
   },
   test: {
     code: 'Enter',
@@ -75,20 +81,23 @@ export const useInputDispatcherStore = defineStore('inputDispatcher', {
       this.dispatchAction(action)
     },
     eventMatchesShortcut(event: KeyboardEvent, shortcut: KeyboardShortcut) {
-      return event.code === shortcut.code
+      return (shortcut.code === undefined || event.code === shortcut.code)
+        && (shortcut.key === undefined || event.key.toLowerCase() === shortcut.key.toLowerCase())
         && event.shiftKey === Boolean(shortcut.shiftKey)
+        && event.ctrlKey === Boolean(shortcut.ctrlKey)
     },
     dispatchAction(action: InputAction) {
       const frequencyIncrement = FREQUENCY_INCREMENT_MAPPING[action]
+      const agentControlStore = useAgentControlStore()
 
       if (frequencyIncrement !== undefined) {
-        const agentControlStore = useAgentControlStore()
         agentControlStore.increaseFrequency(frequencyIncrement)
         return
       }
 
-      if (action === 'test') {
-        console.log('Input action: test')
+      if (action === 'mode_next') {
+        agentControlStore.selectNextMode()
+        return
       }
     },
   },

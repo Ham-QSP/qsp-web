@@ -21,6 +21,7 @@ import {
   RigAntenna,
   RigVfoFlag,
   TrxFrequencySchema,
+  TrxModeSchema,
   TrxVfoMode,
   type RigFrequencyRange,
   type TrxCapabilities,
@@ -123,6 +124,43 @@ const vfoModeByTrxMode: Partial<Record<TrxVfoMode, VfoMode>> = {
   [TrxVfoMode.CWN]: VfoMode.CWN,
 }
 
+const trxModeByVfoMode: Record<VfoMode, TrxVfoMode> = {
+  [VfoMode.AM]: TrxVfoMode.AM,
+  [VfoMode.CW]: TrxVfoMode.CW,
+  [VfoMode.USB]: TrxVfoMode.USB,
+  [VfoMode.LSB]: TrxVfoMode.LSB,
+  [VfoMode.RTTY]: TrxVfoMode.RTTY,
+  [VfoMode.FM]: TrxVfoMode.FM,
+  [VfoMode.WFM]: TrxVfoMode.WFM,
+  [VfoMode.CWR]: TrxVfoMode.CWR,
+  [VfoMode.RTTYR]: TrxVfoMode.RTTYR,
+  [VfoMode.AMS]: TrxVfoMode.AMS,
+  [VfoMode.PKTLSB]: TrxVfoMode.PKTLSB,
+  [VfoMode.PKTUSB]: TrxVfoMode.PKTUSB,
+  [VfoMode.PKTFM]: TrxVfoMode.PKTFM,
+  [VfoMode.ECSSUSB]: TrxVfoMode.ECSSUSB,
+  [VfoMode.EXSSLSB]: TrxVfoMode.EXSSLSB,
+  [VfoMode.FAX]: TrxVfoMode.FAX,
+  [VfoMode.SAM]: TrxVfoMode.SAM,
+  [VfoMode.DSB]: TrxVfoMode.DSB,
+  [VfoMode.FMN]: TrxVfoMode.FMN,
+  [VfoMode.PKTAM]: TrxVfoMode.PKTAM,
+  [VfoMode.P25]: TrxVfoMode.P25,
+  [VfoMode.DSTAR]: TrxVfoMode.DSTAR,
+  [VfoMode.DPMR]: TrxVfoMode.DPMR,
+  [VfoMode.NXDNVN]: TrxVfoMode.NXDNVN,
+  [VfoMode.NXDN_N]: TrxVfoMode.NXDN_N,
+  [VfoMode.DCR]: TrxVfoMode.DCR,
+  [VfoMode.AMN]: TrxVfoMode.AMN,
+  [VfoMode.PSK]: TrxVfoMode.PSK,
+  [VfoMode.PSKR]: TrxVfoMode.PSKR,
+  [VfoMode.DD]: TrxVfoMode.DD,
+  [VfoMode.C4FM]: TrxVfoMode.C4FM,
+  [VfoMode.PKTFMN]: TrxVfoMode.PKTFMN,
+  [VfoMode.SPEC]: TrxVfoMode.SPEC,
+  [VfoMode.CWN]: TrxVfoMode.CWN,
+}
+
 function mapFrequencyRange(range: RigFrequencyRange): TransceiverFrequencyRange {
   return {
     listId: range.listId,
@@ -145,6 +183,10 @@ function mapTransceiverCapabilities(capabilities: TrxCapabilities): TransceiverC
     rxFrequencyRanges: capabilities.rxFrequencyRanges.map(mapFrequencyRange),
     txFrequencyRanges: capabilities.txFrequencyRanges.map(mapFrequencyRange),
   }
+}
+
+function uniqueModes(modes: VfoMode[]): VfoMode[] {
+  return [...new Set(modes)]
 }
 
 export const useAgentControlStore = defineStore('agentControl', {
@@ -211,6 +253,15 @@ export const useAgentControlStore = defineStore('agentControl', {
         if (transceiverMessage.case === "frequencyMessage") {
           this.vfoState.frequency = Number(transceiverMessage.value.frequency);
         }
+        else if (transceiverMessage.case === "modeMessage") {
+          const mode = vfoModeByTrxMode[transceiverMessage.value.mode];
+          if (mode === undefined) {
+            console.warn("Unsupported transceiver mode received:", transceiverMessage.value.mode);
+            return;
+          }
+
+          this.vfoState.mode = mode;
+        }
         else if (transceiverMessage.case === "trxCapabilities") {
           this.transceiverCapabilities = mapTransceiverCapabilities(transceiverMessage.value);
           console.log("Capabilities: {}", this.transceiverCapabilities);
@@ -247,6 +298,40 @@ export const useAgentControlStore = defineStore('agentControl', {
 
       this.dataChannel.send(toBinary(AgentControlMessageSchema, frequencyMessage));
     },
+    setMode(mode: VfoMode) {
+      if (this.dataChannel === null) {
+        console.warn("Cannot set mode: no WebRTC data channel registered");
+        return;
+      }
+
+      if (this.dataChannel.readyState !== "open") {
+        console.warn("Cannot set mode: WebRTC data channel is not open");
+        return;
+      }
+
+      const trxMode = create(TrxModeSchema, {
+        vfoId: 0,
+        mode: trxModeByVfoMode[mode],
+      });
+
+      const modeMessage = create(AgentControlMessageSchema, {
+        message: {
+          case: "transceiver",
+          value: {
+            transceiverMessage: {
+              case: "modeMessage",
+              value: trxMode,
+            },
+          },
+        },
+      });
+
+      this.dataChannel.send(toBinary(AgentControlMessageSchema, modeMessage));
+
+      if (this.vfoState !== null) {
+        this.vfoState.mode = mode;
+      }
+    },
     increaseFrequency(increment: number) {
       if (this.vfoState === null) {
         console.warn("Cannot increase frequency: VFO state is undefined");
@@ -255,6 +340,45 @@ export const useAgentControlStore = defineStore('agentControl', {
       const newFrequency = Number(this.vfoState.frequency + increment);
       this.setFrequency(newFrequency);
       this.vfoState.frequency = newFrequency;
+    },
+    selectNextMode() {
+      if (this.vfoState === null) {
+        console.warn("Cannot select next mode: VFO state is undefined");
+        return;
+      }
+
+      const selectableModes = this.selectableModesForCurrentFrequency();
+      if (selectableModes.length === 0) {
+        console.warn("Cannot select next mode: no selectable mode available");
+        return;
+      }
+
+      const currentModeIndex = selectableModes.indexOf(this.vfoState.mode);
+      const nextModeIndex = currentModeIndex === -1
+        ? 0
+        : (currentModeIndex + 1) % selectableModes.length;
+
+      this.setMode(selectableModes[nextModeIndex]);
+    },
+    selectableModesForCurrentFrequency(): VfoMode[] {
+      const capabilities = this.transceiverCapabilities;
+      if (this.vfoState === null || capabilities === null) {
+        return Object.values(VfoMode);
+      }
+
+      const frequency = BigInt(this.vfoState.frequency);
+      const matchingRangeModes = capabilities.rxFrequencyRanges
+        .filter(range => range.lowerFrequencyHz <= frequency && frequency <= range.upperFrequencyHz)
+        .flatMap(range => range.modes);
+
+      if (matchingRangeModes.length > 0) {
+        return uniqueModes(matchingRangeModes);
+      }
+
+      const supportedModes = capabilities.rxFrequencyRanges.flatMap(range => range.modes);
+      return supportedModes.length > 0
+        ? uniqueModes(supportedModes)
+        : Object.values(VfoMode);
     },
   },
 })
