@@ -18,13 +18,15 @@ import {defineStore} from 'pinia'
 import {create, fromBinary, toBinary} from "@bufbuild/protobuf";
 import {
   AgentControlMessageSchema,
-  RigAntenna,
-  RigVfoFlag,
-  TrxFrequencySchema,
-  TrxModeSchema,
+  TrxAntenna,
+  TrxFrequencyMessageSchema,
+  TrxModeMessageSchema,
+  TrxVfoFlag,
+  TrxVfoOperation,
+  TrxVfoOperationMessageSchema,
   TrxVfoMode,
-  type RigFrequencyRange,
-  type TrxCapabilities,
+  type TrxCapabilitiesMessage,
+  type RigFrequencyRangeMessage,
 } from "@ham-qsp/proto-files";
 
 export enum VfoMode {
@@ -74,8 +76,8 @@ export interface TransceiverFrequencyRange {
   lowerFrequencyHz: bigint
   upperFrequencyHz: bigint
   modes: VfoMode[]
-  vfo: RigVfoFlag[]
-  antenna: RigAntenna[]
+  vfo: TrxVfoFlag[]
+  antenna: TrxAntenna[]
   label?: string
 }
 
@@ -161,7 +163,7 @@ const trxModeByVfoMode: Record<VfoMode, TrxVfoMode> = {
   [VfoMode.CWN]: TrxVfoMode.CWN,
 }
 
-function mapFrequencyRange(range: RigFrequencyRange): TransceiverFrequencyRange {
+function mapFrequencyRange(range: RigFrequencyRangeMessage): TransceiverFrequencyRange {
   return {
     listId: range.listId,
     lowerFrequencyHz: range.lowerFrequencyHz,
@@ -175,7 +177,7 @@ function mapFrequencyRange(range: RigFrequencyRange): TransceiverFrequencyRange 
   }
 }
 
-function mapTransceiverCapabilities(capabilities: TrxCapabilities): TransceiverCapabilities {
+function mapTransceiverCapabilities(capabilities: TrxCapabilitiesMessage): TransceiverCapabilities {
   return {
     rigModel: capabilities.rigModel,
     modelName: capabilities.modelName,
@@ -187,6 +189,20 @@ function mapTransceiverCapabilities(capabilities: TrxCapabilities): TransceiverC
 
 function uniqueModes(modes: VfoMode[]): VfoMode[] {
   return [...new Set(modes)]
+}
+
+function isDataChannelReady(dataChannel: RTCDataChannel | null, action: string): dataChannel is RTCDataChannel {
+  if (dataChannel === null) {
+    console.warn(`Cannot ${action}: no WebRTC data channel registered`);
+    return false;
+  }
+
+  if (dataChannel.readyState !== "open") {
+    console.warn(`Cannot ${action}: WebRTC data channel is not open`);
+    return false;
+  }
+
+  return true;
 }
 
 export const useAgentControlStore = defineStore('agentControl', {
@@ -262,24 +278,18 @@ export const useAgentControlStore = defineStore('agentControl', {
 
           this.vfoState.mode = mode;
         }
-        else if (transceiverMessage.case === "trxCapabilities") {
+        else if (transceiverMessage.case === "trxCapabilitiesMessage") {
           this.transceiverCapabilities = mapTransceiverCapabilities(transceiverMessage.value);
           console.log("Capabilities: {}", this.transceiverCapabilities);
         }
       }
     },
     setFrequency(frequency: number) {
-      if (this.dataChannel === null) {
-        console.warn("Cannot set frequency: no WebRTC data channel registered");
+      if (!isDataChannelReady(this.dataChannel, "set frequency")) {
         return;
       }
 
-      if (this.dataChannel.readyState !== "open") {
-        console.warn("Cannot set frequency: WebRTC data channel is not open");
-        return;
-      }
-
-      const trxFrequency = create(TrxFrequencySchema, {
+      const trxFrequency = create(TrxFrequencyMessageSchema, {
         vfoId: 0,
         frequency: BigInt(frequency),
       });
@@ -299,17 +309,11 @@ export const useAgentControlStore = defineStore('agentControl', {
       this.dataChannel.send(toBinary(AgentControlMessageSchema, frequencyMessage));
     },
     setMode(mode: VfoMode) {
-      if (this.dataChannel === null) {
-        console.warn("Cannot set mode: no WebRTC data channel registered");
+      if (!isDataChannelReady(this.dataChannel, "set mode")) {
         return;
       }
 
-      if (this.dataChannel.readyState !== "open") {
-        console.warn("Cannot set mode: WebRTC data channel is not open");
-        return;
-      }
-
-      const trxMode = create(TrxModeSchema, {
+      const trxMode = create(TrxModeMessageSchema, {
         vfoId: 0,
         mode: trxModeByVfoMode[mode],
       });
@@ -331,6 +335,36 @@ export const useAgentControlStore = defineStore('agentControl', {
       if (this.vfoState !== null) {
         this.vfoState.mode = mode;
       }
+    },
+    bandUp() {
+      this.sendVfoOperation(TrxVfoOperation.BAND_UP)
+    },
+    bandDown() {
+      this.sendVfoOperation(TrxVfoOperation.BAND_DOWN)
+    },
+    sendVfoOperation(operation: TrxVfoOperation) {
+      if (!isDataChannelReady(this.dataChannel, "change band")) {
+        return;
+      }
+
+      const trxVfoOperation = create(TrxVfoOperationMessageSchema, {
+        vfoId: 0,
+        operation,
+      });
+
+      const vfoOperationMessage = create(AgentControlMessageSchema, {
+        message: {
+          case: "transceiver",
+          value: {
+            transceiverMessage: {
+              case: "trxVfoMessage",
+              value: trxVfoOperation,
+            },
+          },
+        },
+      });
+
+      this.dataChannel.send(toBinary(AgentControlMessageSchema, vfoOperationMessage));
     },
     increaseFrequency(increment: number) {
       if (this.vfoState === null) {

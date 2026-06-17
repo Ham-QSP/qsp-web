@@ -18,7 +18,7 @@
 import {defineStore} from 'pinia'
 import {useAgentControlStore} from '@/stores/agentControl'
 
-export type InputAction = 'frequ_up' | 'frequ_down' | 'frequ_up_fine' | 'frequ_down_fine' | 'mode_next' | 'test'
+export type InputAction = 'frequ_up' | 'frequ_down' | 'frequ_up_fine' | 'frequ_down_fine' | 'mode_next' | 'band_up' | 'band_down' | 'test'
 
 interface KeyboardShortcut {
   code?: string
@@ -48,6 +48,15 @@ const DEFAULT_KEYBOARD_MAPPING: KeyboardMapping = {
   mode_next: {
     key: 'm',
     ctrlKey: true,
+  },
+  band_up: {
+    key: 'b',
+    ctrlKey: true,
+  },
+  band_down: {
+    key: 'b',
+    ctrlKey: true,
+    shiftKey: true,
   },
   test: {
     code: 'Enter',
@@ -98,6 +107,15 @@ export const useInputDispatcherStore = defineStore('inputDispatcher', {
       if (action === 'mode_next') {
         agentControlStore.selectNextMode()
         return
+      }
+
+      if (action === 'band_up') {
+        agentControlStore.bandUp()
+        return
+      }
+
+      if (action === 'band_down') {
+        agentControlStore.bandDown()
       }
     },
   },
