@@ -45,17 +45,12 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@ham-qsp"
 
-      - name: Configure GitHub Packages
-        run: |
-          echo "@ham-qsp:registry=https://npm.pkg.github.com" >> "$HOME/.npmrc"
-          echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> "$HOME/.npmrc"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install dependencies
         run: |
           corepack enable
           yarn install --frozen-lockfile --non-interactive
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build production bundle
         run: yarn build-only
