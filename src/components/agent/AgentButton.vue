@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import {storeToRefs} from "pinia";
-import {type AgentDetail, ConnectionState} from "@/components/agent/Signaling";
+import {type AgentSessionDetail, ConnectionState} from "@/components/agent/Signaling";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
 import {useAuthentStore} from "@/stores/authent";
 import {useAgentControlStore} from "@/stores/agentControl";
@@ -29,14 +29,14 @@ const {transceiverCapabilities} = storeToRefs(agentControlStore)
 
 const authentStore = useAuthentStore();
 
-const agentList = ref<AgentDetail[]>([])
+const agentList = ref<AgentSessionDetail[]>([])
 const dialogOpen = ref(false)
 
 async function loadRadios() {
-  agentList.value = await agentStore.getAgents();
+  agentList.value = await agentStore.getOnlineAgents();
 }
 
-const agentClick = async (agent: AgentDetail) => {
+const agentClick = async (agent: AgentSessionDetail) => {
   agentStore.connectToAgent(agent);
   dialogOpen.value = false
 }

@@ -23,6 +23,12 @@
         <AgentButton />
         <v-divider vertical />
         <LoginButton />
+        <v-divider vertical />
+        <v-btn
+          icon="mdi-cog"
+          title="Settings"
+          to="/settings"
+        />
       </template>
     </v-app-bar>
     <v-main>

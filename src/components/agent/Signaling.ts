@@ -15,16 +15,16 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export class AgentDetail {
-  name = ""
-  id = ""
-  description= ""
-  version = ""
-  type = ""
+export class AgentSessionDetail {
+  name: string = ""
+  id: string = ""
+  description: string | null= null
+  version: string | null = null
+  type: string | null = null
 }
 
 export class AgentConnection {
-  agent: AgentDetail | null = null;
+  agent: AgentSessionDetail | null = null;
   state: ConnectionState = ConnectionState.NOT_CONNECTED;
 }
 
