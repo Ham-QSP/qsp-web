@@ -223,10 +223,10 @@
     "@eslint/core" "^0.13.0"
     levn "^0.4.1"
 
-"@ham-qsp/proto-files@^0.1.7":
-  version "0.1.7"
-  resolved "https://npm.pkg.github.com/download/@ham-qsp/proto-files/0.1.7/007457665105970be99e473cc454b90628fccd90#007457665105970be99e473cc454b90628fccd90"
-  integrity sha512-3O8GRPJqJyQCbb5Q1SOhoME9ud00bKNpkNszr9cdas1ExLZR9fzQx0D/LgKnskIJDrmvNZlOHFs/rO8Zz/0Lmw==
+"@ham-qsp/proto-files@^0.1.8":
+  version "0.1.8"
+  resolved "https://npm.pkg.github.com/download/@ham-qsp/proto-files/0.1.8/1bb62de7b6da4c1c18c701cf744969514cbca4ef#1bb62de7b6da4c1c18c701cf744969514cbca4ef"
+  integrity sha512-SAwpKSydOaXGQh1/RFjldFtFX9nf3BtALiISY3VrOp1B9TYPlUdnf19vEg6K+AXUMoMYAhGltJMf40uQMGlg8g==
   dependencies:
     "@bufbuild/protobuf" "^2.2.3"
 
