@@ -65,6 +65,10 @@ jobs:
           cache: yarn
           registry-url: https://npm.pkg.github.com
           scope: "@ham-qsp"
+        # setup-node 7 runs `yarn cache dir` (cache: yarn) during this step, and
+        # yarn fails on the generated .npmrc if ${NODE_AUTH_TOKEN} is unset.
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
         run: |
