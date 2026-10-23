@@ -23,7 +23,7 @@
     "yoga-layout": "^3.2"
   },
   "devDependencies": {
-    "@eslint/js": "^9.14",
+    "@eslint/js": "^10.0",
     "@tsconfig/node22": "^22.0",
     "@types/node": "^22.9",
     "@vitejs/plugin-vue": "^6",
