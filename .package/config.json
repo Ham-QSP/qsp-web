@@ -1,0 +1,5 @@
+{
+  "signalingServerPrefix": "http://localhost/signaling",
+  "authenticationServerPrefix": "http://localhost/auth",
+  "portalUrl": "http://localhost"
+}

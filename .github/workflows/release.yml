@@ -1,6 +1,9 @@
 name: Release
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version:
@@ -13,13 +16,18 @@ permissions:
   packages: read
 
 concurrency:
-  group: release-${{ inputs.version }}
+  group: release-${{ inputs.version || github.ref }}
   cancel-in-progress: false
 
 jobs:
   release:
     name: Build and publish release
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+      security-events: write
 
     env:
       VERSION: ${{ inputs.version }}
@@ -28,7 +36,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Validate SemVer version
         run: |
@@ -37,8 +47,19 @@ jobs:
             exit 1
           fi
 
+      # SemVer allows a "+build.1" suffix, which is a legal release/tag
+      # name but not a legal Docker tag (Docker tags only allow
+      # [A-Za-z0-9_.-]). Keep $VERSION/$RELEASE_TAG as the maintainer typed
+      # them for the GitHub release, and derive a separate, Docker-safe tag
+      # for the image.
+      - name: Resolve Docker tag
+        id: docker-tag
+        run: |
+          docker_tag="${VERSION//+/_}"
+          echo "tag=$docker_tag" >> "$GITHUB_OUTPUT"
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: yarn
@@ -63,6 +84,78 @@ jobs:
           cp README.md COPYING release/root/
           tar -C release/root -cJf "$ARCHIVE_NAME" .
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      # `workflow_dispatch` can target any ref, not just a commit that has
+      # already gone through the docker-latest job's scan on main, so this
+      # job cannot assume the image was scanned already and must scan it
+      # again before pushing (same build-local -> scan -> push sequence as
+      # docker-latest, just with the version tag added).
+      #
+      # Everything through the push below runs BEFORE "Publish GitHub
+      # release": if the login, build, scan, or push fails, no GitHub
+      # release or tag gets created, so a maintainer can just fix the
+      # problem and re-run the workflow with the same version. Creating the
+      # release first and the image last would instead leave a release with
+      # no matching image on a failure, and a re-run would then fail at
+      # `gh release create` because the release/tag already exists.
+      - name: Build release image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: false
+          load: true
+          tags: f4fez/qsp-web:${{ steps.docker-tag.outputs.tag }}
+          context: .
+          file: .package/Dockerfile
+          secrets: |
+            node_auth=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan release image
+        id: scan-release
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: f4fez/qsp-web:${{ steps.docker-tag.outputs.tag }}
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload release scan results
+        if: always() && steps.scan-release.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: ${{ steps.scan-release.outputs.sarif }}
+          category: grype-container-release
+
+      # Pushes :latest again here too: this commit may differ from
+      # whatever last ran through docker-latest (e.g. a release cut from an
+      # older main commit, or re-run with a different version), so :latest
+      # should track what was just scanned and tagged here, not be assumed
+      # stale-but-fine from the last push-to-main run.
+      - name: Push release image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: true
+          context: .
+          file: .package/Dockerfile
+          secrets: |
+            node_auth=${{ secrets.GITHUB_TOKEN }}
+          tags: |
+            f4fez/qsp-web:${{ steps.docker-tag.outputs.tag }}
+            f4fez/qsp-web:latest
+
+      # Only create the release/tag once the image has actually been built,
+      # scanned, and pushed -- see the comment above "Build release image".
       - name: Publish GitHub release
         run: |
           gh release create "$RELEASE_TAG" "$ARCHIVE_NAME" \
@@ -70,3 +163,72 @@ jobs:
             --notes "Production build for qsp-web $RELEASE_TAG."
         env:
           GH_TOKEN: ${{ github.token }}
+
+  docker-latest:
+    name: Build, scan and publish :latest image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write
+    steps:
+      - name: Checkout the code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+
+      - name: Set up Docker Build
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      # Build into the local daemon first so the image can be scanned before
+      # it is published. The push below reuses this build from cache.
+      - name: Build image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: false
+          load: true
+          tags: f4fez/qsp-web:latest
+          context: .
+          file: .package/Dockerfile
+          secrets: |
+            node_auth=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan image
+        id: scan
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: f4fez/qsp-web:latest
+          severity-cutoff: high
+          # Only fail on vulnerabilities that have a fix available: an
+          # unpatched base-image CVE must not block releases indefinitely.
+          only-fixed: true
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload scan results
+        # Publish findings even when the scan failed the build.
+        if: always() && steps.scan.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+          category: grype-container
+
+      - name: Push image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: true
+          tags: f4fez/qsp-web:latest
+          context: .
+          file: .package/Dockerfile
+          secrets: |
+            node_auth=${{ secrets.GITHUB_TOKEN }}
