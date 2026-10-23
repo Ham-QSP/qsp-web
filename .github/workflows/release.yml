@@ -24,6 +24,10 @@ jobs:
     name: Build and publish release
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+      security-events: write
 
     env:
       VERSION: ${{ inputs.version }}
@@ -32,7 +36,9 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Validate SemVer version
         run: |
@@ -42,7 +48,7 @@ jobs:
           fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: yarn
@@ -87,10 +93,45 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      # No Grype scan here: this image was already built and scanned by the
-      # docker-latest job when this commit was pushed to main. The release
-      # build reuses that layer cache and adds the version tag.
-      - name: Build and push release image
+      # `workflow_dispatch` can target any ref, not just a commit that has
+      # already gone through the docker-latest job's scan on main, so this
+      # job cannot assume the image was scanned already and must scan it
+      # again before pushing (same build-local -> scan -> push sequence as
+      # docker-latest, just with the version tag added).
+      - name: Build release image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          push: false
+          load: true
+          tags: f4fez/qsp-web:${{ inputs.version }}
+          context: .
+          file: .package/Dockerfile
+          secrets: |
+            node_auth=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Scan release image
+        id: scan-release
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: f4fez/qsp-web:${{ inputs.version }}
+          severity-cutoff: high
+          only-fixed: true
+          fail-build: true
+          output-format: sarif
+
+      - name: Upload release scan results
+        if: always() && steps.scan-release.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: ${{ steps.scan-release.outputs.sarif }}
+          category: grype-container-release
+
+      # Pushes :latest again here too: this commit may differ from
+      # whatever last ran through docker-latest (e.g. a release cut from an
+      # older main commit, or re-run with a different version), so :latest
+      # should track what was just scanned and tagged here, not be assumed
+      # stale-but-fine from the last push-to-main run.
+      - name: Push release image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           push: true

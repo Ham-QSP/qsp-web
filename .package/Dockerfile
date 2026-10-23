@@ -9,8 +9,13 @@ WORKDIR /build
 
 COPY package.json yarn.lock .npmrc ./
 RUN corepack enable
+# .npmrc only sets @ham-qsp:registry; it has no auth token line, so yarn
+# would hit npm.pkg.github.com unauthenticated without this. Appending an
+# explicit `_authToken` line (scoped to this builder-stage layer only --
+# the runtime stage never copies .npmrc) is what actually wires the secret
+# into the registry request.
 RUN --mount=type=secret,id=node_auth \
-    NODE_AUTH_TOKEN="$(cat /run/secrets/node_auth 2>/dev/null || true)" \
+    echo "//npm.pkg.github.com/:_authToken=$(cat /run/secrets/node_auth)" >> .npmrc && \
     yarn install --frozen-lockfile --non-interactive
 
 COPY . .
