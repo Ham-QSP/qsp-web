@@ -21,6 +21,7 @@ import {useAgentConnectionStore} from '@/stores/AgentConnection'
 import {useAgentControlStore} from '@/stores/agentControl'
 import {useAuthentStore} from '@/stores/authent'
 import type {AgentDetail} from "@/components/agent/Agent";
+import {ConnectionState} from '@/components/agent/Signaling'
 
 const agentStore = useAgentConnectionStore()
 const {agentConnectionState} = storeToRefs(agentStore)
@@ -36,6 +37,15 @@ const connectedTransceiverLabel = computed(() => {
     .filter(Boolean)
     .join(' ')
 })
+
+function agentStatus(agent: AgentDetail) {
+  if (agent.sessionId === null) return {label: 'Offline', icon: 'mdi-circle-outline', color: undefined}
+  if (agentConnectionState.value.state !== ConnectionState.NOT_CONNECTED
+    && agentConnectionState.value.agent?.id === agent.sessionId) {
+    return {label: 'Connected', icon: 'mdi-radio-tower', color: 'primary'}
+  }
+  return {label: 'Online', icon: 'mdi-circle', color: 'success'}
+}
 
 async function loadAgents() {
   if (!authentStore.isAuthenticated()) return
@@ -67,7 +77,16 @@ onMounted(loadAgents)
           :key="agent.id"
           :title="agent.displayName"
           :subtitle="agent.sessionDescription"
+          :to="agent.id ? `/settings/agents/${agent.id}` : undefined"
         >
+          <template #prepend>
+            <v-icon
+              :icon="agentStatus(agent).icon"
+              :color="agentStatus(agent).color"
+              :title="agentStatus(agent).label"
+              size="small"
+            />
+          </template>
           <template v-slot:title = "title">
             <span class="text-primary">{{ agent.displayName }}</span><span v-if="agent.sessionName !== null"> &mdash; {{ agent.sessionName }} </span>
           </template>

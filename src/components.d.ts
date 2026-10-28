@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AgentButton: typeof import('./components/agent/AgentButton.vue')['default']
+    AgentDetailSettings: typeof import('./components/settings/AgentDetailSettings.vue')['default']
     AgentsSettings: typeof import('./components/settings/AgentsSettings.vue')['default']
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     LoggedInCard: typeof import('./components/login/LoggedInCard.vue')['default']

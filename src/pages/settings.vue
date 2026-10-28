@@ -16,20 +16,22 @@
 -->
 
 <script setup lang="ts">
-type SettingKey = 'profile' | 'agents'
-
 interface SettingItem {
-  value: SettingKey
+  to: string
   title: string
   icon: string
 }
 
 const items: SettingItem[] = [
-  {value: 'profile', title: 'Profil', icon: 'mdi-account'},
-  {value: 'agents', title: 'Agents', icon: 'mdi-radio'},
+  {to: '/settings/profile', title: 'Profil', icon: 'mdi-account'},
+  {to: '/settings/agents', title: 'Agents', icon: 'mdi-radio'},
 ]
 
-const selected = ref<SettingKey>('profile')
+const route = useRoute()
+
+function isActive(item: SettingItem) {
+  return route.path === item.to || route.path.startsWith(item.to + '/')
+}
 </script>
 
 <template>
@@ -39,19 +41,18 @@ const selected = ref<SettingKey>('profile')
         <v-list nav>
           <v-list-item
             v-for="item in items"
-            :key="item.value"
-            :active="selected === item.value"
+            :key="item.to"
+            :active="isActive(item)"
             :prepend-icon="item.icon"
             :title="item.title"
-            @click="selected = item.value"
+            :to="item.to"
           />
         </v-list>
       </v-col>
 
       <v-col cols="12" sm="8" md="9">
         <v-card>
-          <ProfileSettings v-if="selected === 'profile'" />
-          <AgentsSettings v-else-if="selected === 'agents'" />
+          <router-view />
         </v-card>
       </v-col>
     </v-row>
