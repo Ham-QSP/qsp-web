@@ -41,7 +41,6 @@ const isConnectedToAgent = computed(() =>
 const staticFields = computed(() => {
   if (agent.value === null) return []
   return [
-    {label: 'Id', value: agent.value.id},
     {label: 'Station', value: agent.value.station},
     {label: 'Secret', value: agent.value.secret},
   ].filter((field) => field.value)
@@ -50,7 +49,7 @@ const staticFields = computed(() => {
 const sessionFields = computed(() => {
   if (agent.value === null) return []
   return [
-    {label: 'Session', value: agent.value.sessionName},
+    {label: 'Session name', value: agent.value.sessionName},
     {label: 'Description', value: agent.value.sessionDescription},
     {label: 'Version', value: agent.value.sessionVersion},
     {label: 'Type', value: agent.value.sessionType},
@@ -86,9 +85,9 @@ watch(() => props.id, load)
     <v-btn
       icon="mdi-arrow-left"
       variant="text"
-      to="/settings/agents"
+      to="/settings/profile/agents"
     />
-    <span class="ml-2">{{ agent?.displayName ?? 'Agent' }}</span>
+    <span class="ml-2">{{ agent?.id ?? 'Agent' }}</span>
     <v-chip
       v-if="agent !== null"
       class="ml-4"
@@ -135,7 +134,7 @@ watch(() => props.id, load)
         <v-card
           v-if="sessionFields.length > 0"
           class="settings-block"
-          title="Session data"
+          title="Connection information"
           variant="outlined"
         >
           <v-list>

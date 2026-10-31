@@ -15,6 +15,48 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+<script setup lang="ts">
+interface SettingItem {
+  to: string
+  title: string
+  icon: string
+  exact?: boolean
+}
+
+const items: SettingItem[] = [
+  {to: '/settings/profile', title: 'Profil', icon: 'mdi-account', exact: true},
+  {to: '/settings/profile/agents', title: 'Agents', icon: 'mdi-radio'},
+]
+
+const route = useRoute()
+
+function isActive(item: SettingItem) {
+  if (item.exact) return route.path === item.to
+  return route.path === item.to || route.path.startsWith(item.to + '/')
+}
+</script>
+
 <template>
-  <ProfileSettings />
+  <v-container fluid>
+    <v-row>
+      <v-col cols="12" sm="4" md="3">
+        <v-list nav>
+          <v-list-item
+            v-for="item in items"
+            :key="item.to"
+            :active="isActive(item)"
+            :prepend-icon="item.icon"
+            :title="item.title"
+            :to="item.to"
+          />
+        </v-list>
+      </v-col>
+
+      <v-col cols="12" sm="8" md="9">
+        <v-card>
+          <router-view />
+        </v-card>
+      </v-col>
+    </v-row>
+  </v-container>
 </template>

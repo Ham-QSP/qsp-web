@@ -77,7 +77,7 @@ onMounted(loadAgents)
           :key="agent.id"
           :title="agent.displayName"
           :subtitle="agent.sessionDescription"
-          :to="agent.id ? `/settings/agents/${agent.id}` : undefined"
+          :to="agent.id ? `/settings/profile/agents/${agent.id}` : undefined"
         >
           <template #prepend>
             <v-icon
@@ -88,7 +88,7 @@ onMounted(loadAgents)
             />
           </template>
           <template v-slot:title = "title">
-            <span class="text-primary">{{ agent.displayName }}</span><span v-if="agent.sessionName !== null"> &mdash; {{ agent.sessionName }} </span>
+            <span class="text-primary">{{ agent.id }}</span><span v-if="agent.sessionName !== null"> &mdash; {{ agent.sessionName }} </span>
           </template>
         </v-list-item>
         <v-list-item

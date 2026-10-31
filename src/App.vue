@@ -19,16 +19,13 @@
   <v-app>
     <v-app-bar>
       <v-app-bar-title>QSP</v-app-bar-title>
+
       <template #append>
+        <v-btn to="/">Radio</v-btn>
+        <v-divider vertical />
         <AgentButton />
         <v-divider vertical />
         <LoginButton />
-        <v-divider vertical />
-        <v-btn
-          icon="mdi-cog"
-          title="Settings"
-          to="/settings"
-        />
       </template>
     </v-app-bar>
     <v-main>
@@ -54,3 +51,8 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 </script>
+
+<style lang="sass">
+.v-app-bar .v-btn, .v-app-bar .v-divider
+  margin-left: 10px
+</style>

@@ -30,7 +30,8 @@ const {transceiverCapabilities} = storeToRefs(agentControlStore)
 const authentStore = useAuthentStore();
 
 const agentList = ref<AgentSessionDetail[]>([])
-const dialogOpen = ref(false)
+
+const menu = ref(false)
 
 async function loadRadios() {
   agentList.value = await agentStore.getOnlineAgents();
@@ -38,21 +39,22 @@ async function loadRadios() {
 
 const agentClick = async (agent: AgentSessionDetail) => {
   agentStore.connectToAgent(agent);
-  dialogOpen.value = false
+  menu.value = false
 }
 
 const disconnectClick = async () => {
   agentStore.disconnectFromAgent();
-  dialogOpen.value = false;
+  menu.value = false;
 }
 
 </script>
 
 <template>
   <div id="remoteTracks" />
-  <v-dialog
-    v-model="dialogOpen"
-    max-width="500"
+  <v-menu
+    v-model="menu"
+    :close-on-content-click="false"
+    location="bottom"
   >
     <template #activator="{ props: activatorProps }">
       <v-btn
@@ -76,7 +78,6 @@ const disconnectClick = async () => {
     <template #default>
       <v-card
         v-if="agentConnectionState.state === ConnectionState.NOT_CONNECTED"
-        :title="'Transceivers'"
       >
         <v-card-text
           id="login-popup"
@@ -90,17 +91,18 @@ const disconnectClick = async () => {
               @click="agentClick(agent)"
             />
           </v-list>
+          <v-list-item v-if="!agentList.length" title="No transceiver available" disabled />
         </v-card-text>
 
         <v-card-actions>
           <v-spacer />
           <v-btn
             text="Close"
-            @click="dialogOpen = false"
+            @click="menu = false"
           />
         </v-card-actions>
       </v-card>
-<!-- -->
+
       <v-card
         v-else
         :title="agentConnectionState.agent ? agentConnectionState.agent.name : '<Unknow>'"
@@ -123,17 +125,17 @@ const disconnectClick = async () => {
           <v-spacer />
           <v-btn
             text="Close"
-            @click="dialogOpen = false"
+            @click="menu = false"
           />
         </v-card-actions>
       </v-card>
     </template>
-  </v-dialog>
+  </v-menu>
 </template>
 
 <style scoped lang="sass">
 #trx-brand
-  font-size: 1.5rem
+  font-size: 1.2rem
   font-weight: 600
   margin-right: 10px
 </style>

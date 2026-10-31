@@ -16,7 +16,7 @@
 -->
 
 <script setup lang="ts">
-const route = useRoute("/settings/agents/[id]")
+const route = useRoute("/settings/profile/agents/[id]")
 </script>
 
 <template>
