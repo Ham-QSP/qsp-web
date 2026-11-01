@@ -36,3 +36,8 @@ export interface UpdateUserRequest {
   enabled: boolean
   password?: string | null
 }
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
+}

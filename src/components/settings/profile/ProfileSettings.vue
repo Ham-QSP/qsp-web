@@ -17,8 +17,70 @@
 
 <script setup lang="ts">
 import {useAuthentStore} from '@/stores/authent'
+import {useUsersStore} from '@/stores/users'
+import type {User} from '@/components/settings/admin/User'
 
 const authentStore = useAuthentStore()
+const usersStore = useUsersStore()
+
+const currentUser = ref<User | null>(null)
+const currentPassword = ref('')
+const password = ref('')
+const passwordConfirmation = ref('')
+const showPassword = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
+const successMessage = ref('')
+
+const maxRule = (value: string) => value.length <= 100 || '100 characters max'
+const confirmationRule = (value: string) => value === password.value || 'Passwords do not match'
+
+const canSave = computed(() =>
+  currentUser.value !== null
+  && currentPassword.value.length > 0
+  && password.value.length > 0
+  && password.value.length <= 100
+  && password.value === passwordConfirmation.value
+)
+
+function errorText(error: unknown): string {
+  const data = (error as { response?: { data?: { message?: string, detail?: string } } }).response?.data
+  return data?.detail ?? data?.message ?? 'Request failed'
+}
+
+async function loadCurrentUser() {
+  if (!authentStore.isAuthenticated()) return
+
+  try {
+    currentUser.value = await usersStore.getCurrentUser()
+  } catch (error) {
+    errorMessage.value = errorText(error)
+  }
+}
+
+async function changePassword() {
+  if (currentUser.value === null) return
+
+  saving.value = true
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await usersStore.changeCurrentUserPassword({
+      currentPassword: currentPassword.value,
+      newPassword: password.value,
+    })
+    currentPassword.value = ''
+    password.value = ''
+    passwordConfirmation.value = ''
+    successMessage.value = 'Password changed'
+  } catch (error) {
+    errorMessage.value = errorText(error)
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(loadCurrentUser)
 </script>
 
 <template>
@@ -29,6 +91,65 @@ const authentStore = useAuthentStore()
         :title="authentStore.account?.name"
         prepend-icon="mdi-account-circle"
       />
+      <v-form
+        class="mt-4"
+        @submit.prevent="canSave && changePassword()"
+      >
+        <v-text-field
+          :model-value="currentUser?.email ?? ''"
+          label="Email"
+          readonly
+        />
+        <v-alert
+          v-if="errorMessage"
+          class="mb-4"
+          type="error"
+          variant="tonal"
+          :text="errorMessage"
+        />
+        <v-alert
+          v-if="successMessage"
+          class="mb-4"
+          type="success"
+          variant="tonal"
+          :text="successMessage"
+        />
+        <v-text-field
+          v-model="currentPassword"
+          label="Current password"
+          :type="showPassword ? 'text' : 'password'"
+          :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+          autocomplete="current-password"
+          :rules="[maxRule]"
+          @click:append-inner="showPassword = !showPassword"
+        />
+        <v-text-field
+          v-model="password"
+          label="New password"
+          :type="showPassword ? 'text' : 'password'"
+          :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+          autocomplete="new-password"
+          :rules="[maxRule]"
+          @click:append-inner="showPassword = !showPassword"
+        />
+        <v-text-field
+          v-model="passwordConfirmation"
+          label="Confirm new password"
+          :type="showPassword ? 'text' : 'password'"
+          :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+          autocomplete="new-password"
+          :rules="[confirmationRule]"
+          @click:append-inner="showPassword = !showPassword"
+        />
+        <v-btn
+          color="primary"
+          type="submit"
+          :disabled="!canSave"
+          :loading="saving"
+        >
+          Change password
+        </v-btn>
+      </v-form>
       <v-btn
         class="mt-4"
         color="error"

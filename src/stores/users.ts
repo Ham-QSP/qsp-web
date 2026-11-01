@@ -18,7 +18,7 @@
 import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {useAuthentStore} from "@/stores/authent";
-import type {CreateUserRequest, UpdateUserRequest, User} from "@/components/settings/admin/User";
+import type {ChangePasswordRequest, CreateUserRequest, UpdateUserRequest, User} from "@/components/settings/admin/User";
 
 export const useUsersStore = defineStore('users', {
   state: () => {
@@ -29,6 +29,15 @@ export const useUsersStore = defineStore('users', {
       return this.axiosStore.axios
         .get<User[]>(this.authentStore.authenticationUrl("/users"))
         .then((response) => response.data);
+    },
+    async getCurrentUser(): Promise<User> {
+      return this.axiosStore.axios
+        .get<User>(this.authentStore.authenticationUrl("/users/@me"))
+        .then((response) => response.data);
+    },
+    async changeCurrentUserPassword(request: ChangePasswordRequest): Promise<void> {
+      await this.axiosStore.axios
+        .put(this.authentStore.authenticationUrl("/users/@me/password"), request);
     },
     async getUser(id: string): Promise<User> {
       return this.axiosStore.axios
