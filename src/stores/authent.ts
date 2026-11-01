@@ -23,7 +23,11 @@ const STORAGE_AUTH_STATE = 'authState';
 
 class AuthentAccount {
   name: string = ""
+  roles: string[] = []
 }
+
+let markReady: () => void = () => {}
+const readyPromise = new Promise<void>((resolve) => { markReady = resolve })
 
 interface AuthenticationBroadcastMessage {
   action: string;
@@ -146,7 +150,26 @@ export const useAuthentStore = defineStore('authent', {
     return {account, loginState, axiosInstance, codeVerifier, tokenResponse};
   },
 
+  getters: {
+    permissions(): Set<string> {
+      const rolePermissions = this.config.rolePermissions ?? {}
+      const permissions = new Set<string>()
+      for (const role of this.account?.roles ?? []) {
+        for (const permission of rolePermissions[role] ?? []) {
+          permissions.add(permission)
+        }
+      }
+      return permissions
+    },
+  },
+
   actions: {
+    hasPermission(permission: string): boolean {
+      return this.permissions.has(permission)
+    },
+    whenReady(): Promise<void> {
+      return readyPromise
+    },
     authenticationUrl(path: string): string {
       if (!this.config.authenticationServerPrefix) {
         throw new Error("Authentication server prefix is not configured");
@@ -164,7 +187,11 @@ export const useAuthentStore = defineStore('authent', {
     async init() {
       console.log("Auth: init");
 
-      await this.restoreStorage();
+      try {
+        await this.restoreStorage();
+      } finally {
+        markReady();
+      }
 
       const bc = new BroadcastChannel("authent_popup");
       bc.onmessage = async (message) => {
@@ -247,6 +274,10 @@ export const useAuthentStore = defineStore('authent', {
       const decodedToken = decodeJWT(tokenResponse.access_token);
       this.account = new AuthentAccount();
       this.account.name = decodedToken.sub || '';
+      const roles: unknown = decodedToken.roles;
+      this.account.roles = Array.isArray(roles)
+        ? roles.filter((role): role is string => typeof role === 'string').map((role) => role.replace(/^ROLE_/, ''))
+        : [];
 
       this.loginState = LoginState.AUTHENTICATED;
 

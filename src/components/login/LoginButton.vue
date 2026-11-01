@@ -116,7 +116,7 @@ function getServerInfo() {
               @click="menu = false"
             />
           </v-list-item>
-          <v-list-item>
+          <v-list-item v-if="authentStore.hasPermission('administrate')">
             <v-btn
               block
               class="justify-start"

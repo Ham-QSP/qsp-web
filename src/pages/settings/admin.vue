@@ -16,6 +16,8 @@
 -->
 
 <script setup lang="ts">
+definePage({meta: {permission: 'administrate'}})
+
 interface SettingItem {
   to: string
   title: string
