@@ -108,6 +108,17 @@ function getServerInfo() {
               @click="menu = false"
             />
           </v-list-item>
+          <v-list-item>
+            <v-btn
+              block
+              class="justify-start"
+              variant="text"
+              prepend-icon="mdi-shield-account"
+              text="Admin"
+              to="/settings/admin"
+              @click="menu = false"
+            />
+          </v-list-item>
         </v-list>
 
         <v-card-actions>

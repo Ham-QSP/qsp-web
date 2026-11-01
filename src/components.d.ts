@@ -21,5 +21,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TransceiverControl: typeof import('./components/TransceiverControl.vue')['default']
+    UserDetailSettings: typeof import('./components/settings/admin/UserDetailSettings.vue')['default']
+    UsersSettings: typeof import('./components/settings/admin/UsersSettings.vue')['default']
   }
 }

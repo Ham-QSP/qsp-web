@@ -159,7 +159,7 @@ export const useAuthentStore = defineStore('authent', {
         throw new Error("Portal URL is not configured");
       }
 
-      return this.config.portalUrl + "/src/assets/login-redirect.html";
+      return this.config.portalUrl + "/login-redirect.html";
     },
     async init() {
       console.log("Auth: init");

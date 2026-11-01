@@ -91,7 +91,10 @@ const disconnectClick = async () => {
               @click="agentClick(agent)"
             />
           </v-list>
-          <v-list-item v-if="!agentList.length" title="No transceiver available" disabled />
+          <v-list-item
+            v-if="!agentList.length"
+            title="No transceiver available"
+            disabled />
         </v-card-text>
 
         <v-card-actions>
