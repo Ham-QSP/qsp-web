@@ -20,6 +20,7 @@
 import {getQspServerInfo} from "./QspServerInfo";
 import {useAuthentStore} from "@/stores/authent";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
+import {ConnectionState} from "@/components/agent/Signaling";
 
 const authentStore = useAuthentStore();
 const agentStore = useAgentConnectionStore();
@@ -42,8 +43,15 @@ const loginClick = () => {
     authentStore.login()
   }
 }
-const logoutClick = () => {
-  authentStore.logout();
+const logoutClick = async () => {
+  menu.value = false
+  if (agentStore.agentConnectionState.state !== ConnectionState.NOT_CONNECTED) {
+    agentStore.disconnectFromAgent()
+  }
+  await authentStore.revokeRefreshToken()
+  const endSessionUrl = authentStore.endSessionUrl()
+  await authentStore.logout()
+  window.location.assign(endSessionUrl)
 }
 
 function getServerInfo() {
