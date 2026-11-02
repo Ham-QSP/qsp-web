@@ -19,14 +19,16 @@
 import {storeToRefs} from 'pinia'
 import {useAgentConnectionStore} from '@/stores/AgentConnection'
 import {useAuthentStore} from '@/stores/authent'
+import {useStationsStore} from '@/stores/stations'
 import type {AgentDetail} from '@/components/agent/Agent'
 import {type AgentSessionDetail, ConnectionState} from '@/components/agent/Signaling'
 
-const props = defineProps<{ id: string }>()
+const props = defineProps<{ stationId: string, id: string }>()
 
 const agentStore = useAgentConnectionStore()
 const {agentConnectionState} = storeToRefs(agentStore)
 const authentStore = useAuthentStore()
+const stationsStore = useStationsStore()
 
 const agent = ref<AgentDetail | null>(null)
 const onlineSession = ref<AgentSessionDetail | null>(null)
@@ -41,7 +43,6 @@ const isConnectedToAgent = computed(() =>
 const staticFields = computed(() => {
   if (agent.value === null) return []
   return [
-    {label: 'Station', value: agent.value.station},
     {label: 'Secret', value: agent.value.secret},
   ].filter((field) => field.value)
 })
@@ -62,7 +63,7 @@ async function load() {
   loading.value = true
   try {
     const [agents, onlineAgents] = await Promise.all([
-      agentStore.getAgents(),
+      stationsStore.getStationAgents(props.stationId),
       agentStore.getOnlineAgents(),
     ])
     agent.value = agents.find((a) => a.id === props.id) ?? null
@@ -77,7 +78,7 @@ function connect() {
 }
 
 onMounted(load)
-watch(() => props.id, load)
+watch(() => [props.stationId, props.id], load)
 </script>
 
 <template>
@@ -85,7 +86,7 @@ watch(() => props.id, load)
     <v-btn
       icon="mdi-arrow-left"
       variant="text"
-      to="/settings/profile/agents"
+      :to="`/settings/station/${stationId}/agents`"
     />
     <span class="ml-2">{{ agent?.id ?? 'Agent' }}</span>
     <v-chip

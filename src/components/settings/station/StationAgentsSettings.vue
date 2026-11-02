@@ -20,14 +20,18 @@ import {storeToRefs} from 'pinia'
 import {useAgentConnectionStore} from '@/stores/AgentConnection'
 import {useAgentControlStore} from '@/stores/agentControl'
 import {useAuthentStore} from '@/stores/authent'
+import {useStationsStore} from '@/stores/stations'
 import type {AgentDetail} from "@/components/agent/Agent";
 import {ConnectionState} from '@/components/agent/Signaling'
+
+const props = defineProps<{ stationId: string }>()
 
 const agentStore = useAgentConnectionStore()
 const {agentConnectionState} = storeToRefs(agentStore)
 const agentControlStore = useAgentControlStore()
 const {transceiverCapabilities} = storeToRefs(agentControlStore)
 const authentStore = useAuthentStore()
+const stationsStore = useStationsStore()
 
 const agentList = ref<AgentDetail[]>([])
 const loading = ref(false)
@@ -52,14 +56,14 @@ async function loadAgents() {
 
   loading.value = true
   try {
-    agentList.value = await agentStore.getAgents()
-    console.log(agentList)
+    agentList.value = await stationsStore.getStationAgents(props.stationId)
   } finally {
     loading.value = false
   }
 }
 
 onMounted(loadAgents)
+watch(() => props.stationId, loadAgents)
 </script>
 
 <template>
@@ -77,7 +81,7 @@ onMounted(loadAgents)
           :key="agent.id"
           :title="agent.displayName"
           :subtitle="agent.sessionDescription"
-          :to="agent.id ? `/settings/profile/agents/${agent.id}` : undefined"
+          :to="agent.id ? `/settings/station/${stationId}/agents/${agent.id}` : undefined"
         >
           <template #prepend>
             <v-icon

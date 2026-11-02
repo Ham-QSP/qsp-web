@@ -1,4 +1,4 @@
-<!--
+/*
     Copyright (C) 2026 Florian MAZEN
 
     This program is free software: you can redistribute it and/or modify
@@ -13,8 +13,17 @@
 
     You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
--->
+ */
 
-<template>
-  <AgentsSettings />
-</template>
+export interface Station {
+  id: string
+  mainQRZ: string
+  description: string
+}
+
+export function stationErrorText(error: unknown): string {
+  const response = (error as { response?: { status?: number, data?: { message?: string, detail?: string } } }).response
+  if (response?.status === 403) return 'You are not allowed to access this station'
+  if (response?.status === 404) return 'Station not found'
+  return response?.data?.detail ?? response?.data?.message ?? 'Request failed'
+}
