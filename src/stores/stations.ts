@@ -18,7 +18,7 @@
 import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
-import type {Station} from "@/components/settings/station/Station";
+import type {AgentUpdate, Station, StationUpdate} from "@/components/settings/station/Station";
 import type {AgentDetail} from "@/components/agent/Agent";
 
 export const useStationsStore = defineStore('stations', {
@@ -36,10 +36,34 @@ export const useStationsStore = defineStore('stations', {
         .get<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`))
         .then((response) => response.data);
     },
+    async updateStation(id: string, request: StationUpdate): Promise<Station> {
+      return this.axiosStore.axios
+        .put<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`), request)
+        .then((response) => response.data);
+    },
     async getStationAgents(stationId: string): Promise<AgentDetail[]> {
       return this.axiosStore.axios
         .get<AgentDetail[]>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/agent`))
         .then((response) => response.data);
+    },
+    async createStationAgent(stationId: string, request: AgentUpdate): Promise<AgentDetail> {
+      return this.axiosStore.axios
+        .post<AgentDetail>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/agent`), request)
+        .then((response) => response.data);
+    },
+    async updateStationAgent(stationId: string, agentId: string, request: AgentUpdate): Promise<AgentDetail> {
+      return this.axiosStore.axios
+        .put<AgentDetail>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/agent/${agentId}`), request)
+        .then((response) => response.data);
+    },
+    async generateStationAgentSecret(stationId: string, agentId: string): Promise<AgentDetail> {
+      return this.axiosStore.axios
+        .get<AgentDetail>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/agent/${agentId}/generate-secret`))
+        .then((response) => response.data);
+    },
+    async deleteStationAgent(stationId: string, agentId: string): Promise<void> {
+      await this.axiosStore.axios
+        .delete(this.agentConnectionStore.signalingUrl(`/station/${stationId}/agent/${agentId}`));
     },
   },
 })

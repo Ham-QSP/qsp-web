@@ -15,10 +15,31 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type {InjectionKey, Ref} from 'vue'
+
+export type StationRole = 'OWNER' | 'MEMBER'
+
 export interface Station {
   id: string
   mainQRZ: string
   description: string
+  role: StationRole
+}
+
+export interface StationUpdate {
+  mainQRZ: string
+  description: string
+}
+
+export interface AgentUpdate {
+  displayName: string
+}
+
+// Provided by the station layout, so its pages share the loaded station and the user's role.
+export const stationKey: InjectionKey<Ref<Station | null>> = Symbol('station')
+
+export function canManageStation(station: Station | null): boolean {
+  return station?.role === 'OWNER'
 }
 
 export function stationErrorText(error: unknown): string {

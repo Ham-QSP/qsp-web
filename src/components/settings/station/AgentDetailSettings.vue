@@ -22,6 +22,7 @@ import {useAuthentStore} from '@/stores/authent'
 import {useStationsStore} from '@/stores/stations'
 import type {AgentDetail} from '@/components/agent/Agent'
 import {type AgentSessionDetail, ConnectionState} from '@/components/agent/Signaling'
+import {canManageStation, stationErrorText, stationKey} from '@/components/settings/station/Station'
 
 const props = defineProps<{ stationId: string, id: string }>()
 
@@ -29,23 +30,44 @@ const agentStore = useAgentConnectionStore()
 const {agentConnectionState} = storeToRefs(agentStore)
 const authentStore = useAuthentStore()
 const stationsStore = useStationsStore()
+const router = useRouter()
+
+const station = inject(stationKey, ref(null))
+const canManage = computed(() => canManageStation(station.value))
+const isNew = computed(() => props.id === 'new')
+const agentsPath = computed(() => `/settings/station/${props.stationId}/agents`)
 
 const agent = ref<AgentDetail | null>(null)
 const onlineSession = ref<AgentSessionDetail | null>(null)
+const displayName = ref('')
+// The secret is only returned on creation and regeneration, so it is kept here to survive the reload.
+const revealedSecret = ref<{ agentId: string, secret: string } | null>(null)
+const showSecret = ref(false)
 const loading = ref(false)
+const saving = ref(false)
+const errorMessage = ref('')
+const deleteDialog = ref(false)
+const secretDialog = ref(false)
+
+const requiredRule = (value: string) => !!value.trim() || 'Required'
+const maxRule = (value: string) => value.length <= 100 || '100 characters max'
+
+const canSave = computed(() => {
+  const name = displayName.value.trim()
+  if (name.length === 0 || name.length > 100) return false
+  return isNew.value || (agent.value !== null && name !== agent.value.displayName)
+})
+
+const secret = computed(() => {
+  if (revealedSecret.value !== null && revealedSecret.value.agentId === props.id) return revealedSecret.value.secret
+  return agent.value?.secret ?? null
+})
 
 const isConnectedToAgent = computed(() =>
   agentConnectionState.value.state !== ConnectionState.NOT_CONNECTED
   && onlineSession.value !== null
   && agentConnectionState.value.agent?.id === onlineSession.value.id
 )
-
-const staticFields = computed(() => {
-  if (agent.value === null) return []
-  return [
-    {label: 'Secret', value: agent.value.secret},
-  ].filter((field) => field.value)
-})
 
 const sessionFields = computed(() => {
   if (agent.value === null) return []
@@ -57,7 +79,25 @@ const sessionFields = computed(() => {
   ].filter((field) => field.value)
 })
 
+function fillForm(value: AgentDetail | null) {
+  agent.value = value
+  displayName.value = value?.displayName ?? ''
+}
+
+function revealSecret(value: AgentDetail) {
+  if (value.id !== null && value.secret) {
+    revealedSecret.value = {agentId: value.id, secret: value.secret}
+    showSecret.value = true
+  }
+}
+
 async function load() {
+  errorMessage.value = ''
+  if (isNew.value) {
+    fillForm(null)
+    onlineSession.value = null
+    return
+  }
   if (!authentStore.isAuthenticated()) return
 
   loading.value = true
@@ -66,10 +106,63 @@ async function load() {
       stationsStore.getStationAgents(props.stationId),
       agentStore.getOnlineAgents(),
     ])
-    agent.value = agents.find((a) => a.id === props.id) ?? null
+    fillForm(agents.find((a) => a.id === props.id) ?? null)
     onlineSession.value = onlineAgents.find((a) => a.id === agent.value?.sessionId) ?? null
+  } catch (error) {
+    fillForm(null)
+    errorMessage.value = stationErrorText(error)
   } finally {
     loading.value = false
+  }
+}
+
+async function save() {
+  saving.value = true
+  errorMessage.value = ''
+  try {
+    const request = {displayName: displayName.value.trim()}
+    if (isNew.value) {
+      const created = await stationsStore.createStationAgent(props.stationId, request)
+      revealSecret(created)
+      await router.replace(`${agentsPath.value}/${created.id}`)
+    } else {
+      const updated = await stationsStore.updateStationAgent(props.stationId, props.id, request)
+      fillForm({...agent.value, ...updated})
+    }
+  } catch (error) {
+    errorMessage.value = stationErrorText(error)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function regenerateSecret() {
+  saving.value = true
+  errorMessage.value = ''
+  try {
+    const updated = await stationsStore.generateStationAgentSecret(props.stationId, props.id)
+    fillForm({...agent.value, ...updated})
+    revealSecret(updated)
+  } catch (error) {
+    errorMessage.value = stationErrorText(error)
+  } finally {
+    secretDialog.value = false
+    saving.value = false
+  }
+}
+
+async function remove() {
+  saving.value = true
+  errorMessage.value = ''
+  try {
+    await stationsStore.deleteStationAgent(props.stationId, props.id)
+    deleteDialog.value = false
+    await router.push(agentsPath.value)
+  } catch (error) {
+    deleteDialog.value = false
+    errorMessage.value = stationErrorText(error)
+  } finally {
+    saving.value = false
   }
 }
 
@@ -86,9 +179,9 @@ watch(() => [props.stationId, props.id], load)
     <v-btn
       icon="mdi-arrow-left"
       variant="text"
-      :to="`/settings/station/${stationId}/agents`"
+      :to="agentsPath"
     />
-    <span class="ml-2">{{ agent?.id ?? 'Agent' }}</span>
+    <span class="ml-2">{{ isNew ? 'New agent' : (agent?.displayName || agent?.id || 'Agent') }}</span>
     <v-chip
       v-if="agent !== null"
       class="ml-4"
@@ -110,26 +203,79 @@ watch(() => [props.stationId, props.id], load)
       indeterminate
     />
     <p
-      v-else-if="agent === null"
+      v-else-if="isNew && !canManage"
       class="text-body-2"
     >
-      Agent not found.
+      Only the station owner can create an agent.
     </p>
-    <template v-else>
+    <template v-else-if="isNew || agent !== null">
+      <v-alert
+        v-if="errorMessage"
+        class="mb-4"
+        type="error"
+        variant="tonal"
+        :text="errorMessage"
+      />
+
       <div class="d-flex flex-wrap ga-4">
         <v-card
           class="settings-block"
           title="Identification"
           variant="outlined"
         >
-          <v-list>
-            <v-list-item
-              v-for="field in staticFields"
-              :key="field.label"
-              :title="field.label"
-              :subtitle="field.value ?? undefined"
-            />
-          </v-list>
+          <v-card-text>
+            <v-form
+              v-if="canManage"
+              @submit.prevent="canSave && save()"
+            >
+              <v-text-field
+                v-model="displayName"
+                label="Display name"
+                :rules="[requiredRule, maxRule]"
+              />
+              <v-btn
+                color="primary"
+                type="submit"
+                :disabled="!canSave"
+                :loading="saving"
+              >
+                {{ isNew ? 'Create' : 'Save' }}
+              </v-btn>
+            </v-form>
+            <v-list
+              v-else
+              class="pa-0"
+            >
+              <v-list-item
+                title="Display name"
+                :subtitle="agent?.displayName"
+              />
+            </v-list>
+
+            <v-list
+              v-if="!isNew"
+              class="pa-0 mt-2"
+            >
+              <v-list-item
+                title="Id"
+                :subtitle="agent?.id ?? undefined"
+              />
+            </v-list>
+
+            <template v-if="secret !== null">
+              <v-text-field
+                class="mt-2"
+                :model-value="secret"
+                label="Secret"
+                readonly
+                :type="showSecret ? 'text' : 'password'"
+                :append-inner-icon="showSecret ? 'mdi-eye-off' : 'mdi-eye'"
+                :hint="revealedSecret?.agentId === id ? 'Copy it now and configure it in the agent' : undefined"
+                persistent-hint
+                @click:append-inner="showSecret = !showSecret"
+              />
+            </template>
+          </v-card-text>
         </v-card>
 
         <v-card
@@ -149,23 +295,108 @@ watch(() => [props.stationId, props.id], load)
         </v-card>
       </div>
 
-      <v-btn
-        v-if="isConnectedToAgent"
-        class="mt-2"
-        color="error"
-        @click="agentStore.disconnectFromAgent()"
+      <div
+        v-if="!isNew"
+        class="d-flex flex-wrap ga-2 mt-4"
       >
-        Disconnect
-      </v-btn>
-      <v-btn
-        v-else-if="onlineSession !== null && agentConnectionState.state === ConnectionState.NOT_CONNECTED"
-        class="mt-2"
-        prepend-icon="mdi-radio"
-        @click="connect"
-      >
-        Connect
-      </v-btn>
+        <v-btn
+          v-if="isConnectedToAgent"
+          color="error"
+          @click="agentStore.disconnectFromAgent()"
+        >
+          Disconnect
+        </v-btn>
+        <v-btn
+          v-else-if="onlineSession !== null && agentConnectionState.state === ConnectionState.NOT_CONNECTED"
+          prepend-icon="mdi-radio"
+          @click="connect"
+        >
+          Connect
+        </v-btn>
+        <v-spacer />
+        <template v-if="canManage">
+          <v-btn
+            variant="outlined"
+            prepend-icon="mdi-key-change"
+            :disabled="saving"
+            @click="secretDialog = true"
+          >
+            Regenerate secret
+          </v-btn>
+          <v-btn
+            color="error"
+            variant="outlined"
+            prepend-icon="mdi-delete"
+            :disabled="saving"
+            @click="deleteDialog = true"
+          >
+            Delete
+          </v-btn>
+        </template>
+      </div>
     </template>
+    <template v-else>
+      <v-alert
+        v-if="errorMessage"
+        type="error"
+        variant="tonal"
+        :text="errorMessage"
+      />
+      <p
+        v-else
+        class="text-body-2"
+      >
+        Agent not found.
+      </p>
+    </template>
+
+    <v-dialog
+      v-model="secretDialog"
+      max-width="400"
+    >
+      <v-card title="Regenerate secret">
+        <v-card-text>
+          The agent will have to be configured with the new secret to connect again.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            text="Cancel"
+            @click="secretDialog = false"
+          />
+          <v-btn
+            color="primary"
+            text="Regenerate"
+            :loading="saving"
+            @click="regenerateSecret"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog
+      v-model="deleteDialog"
+      max-width="400"
+    >
+      <v-card title="Delete agent">
+        <v-card-text>
+          Delete {{ agent?.displayName || agent?.id }}? This cannot be undone.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            text="Cancel"
+            @click="deleteDialog = false"
+          />
+          <v-btn
+            color="error"
+            text="Delete"
+            :loading="saving"
+            @click="remove"
+          />
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card-text>
 </template>
 

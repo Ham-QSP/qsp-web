@@ -23,6 +23,7 @@ import {useAuthentStore} from '@/stores/authent'
 import {useStationsStore} from '@/stores/stations'
 import type {AgentDetail} from "@/components/agent/Agent";
 import {ConnectionState} from '@/components/agent/Signaling'
+import {canManageStation, stationKey} from '@/components/settings/station/Station'
 
 const props = defineProps<{ stationId: string }>()
 
@@ -32,6 +33,9 @@ const agentControlStore = useAgentControlStore()
 const {transceiverCapabilities} = storeToRefs(agentControlStore)
 const authentStore = useAuthentStore()
 const stationsStore = useStationsStore()
+
+const station = inject(stationKey, ref(null))
+const canManage = computed(() => canManageStation(station.value))
 
 const agentList = ref<AgentDetail[]>([])
 const loading = ref(false)
@@ -111,6 +115,15 @@ watch(() => props.stationId, loadAgents)
         @click="loadAgents"
       >
         Refresh
+      </v-btn>
+      <v-btn
+        v-if="canManage"
+        class="mt-2 ml-2"
+        color="primary"
+        prepend-icon="mdi-plus"
+        :to="`/settings/station/${stationId}/agents/new`"
+      >
+        New agent
       </v-btn>
     </template>
   </v-card-text>

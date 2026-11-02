@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import type {SettingItem} from '@/components/settings/SettingsNavLayout.vue'
-import {type Station, stationErrorText} from '@/components/settings/station/Station'
+import {type Station, stationErrorText, stationKey} from '@/components/settings/station/Station'
 import {useAuthentStore} from '@/stores/authent'
 import {useStationsStore} from '@/stores/stations'
 
@@ -28,6 +28,8 @@ const stationsStore = useStationsStore()
 const station = ref<Station | null>(null)
 const errorMessage = ref('')
 const loading = ref(false)
+
+provide(stationKey, station)
 
 const items = computed<SettingItem[]>(() => [
   {to: `/settings/station/${route.params.stationId}`, title: 'General', icon: 'mdi-information-outline', exact: true},
@@ -66,6 +68,12 @@ watch(() => route.params.stationId, load)
           to="/settings/station"
         />
         <span class="ml-2 text-h6 text-primary">{{ station.mainQRZ }}</span>
+        <v-chip
+          class="ml-2"
+          size="small"
+        >
+          {{ station.role === 'OWNER' ? 'Owner' : 'Member' }}
+        </v-chip>
       </div>
     </template>
   </SettingsNavLayout>

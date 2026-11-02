@@ -17,67 +17,128 @@
 
 <script setup lang="ts">
 import {useStationsStore} from '@/stores/stations'
-import {type Station, stationErrorText} from '@/components/settings/station/Station'
-
-const props = defineProps<{ stationId: string }>()
+import {canManageStation, stationErrorText, stationKey} from '@/components/settings/station/Station'
 
 const stationsStore = useStationsStore()
 
-const station = ref<Station | null>(null)
-const loading = ref(false)
+const station = inject(stationKey, ref(null))
+
+const mainQRZ = ref('')
+const description = ref('')
+const saving = ref(false)
 const errorMessage = ref('')
+const saved = ref(false)
 
-const fields = computed(() => {
-  if (station.value === null) return []
-  return [
-    {label: 'Main QRZ', value: station.value.mainQRZ},
-    {label: 'Description', value: station.value.description},
-    {label: 'Id', value: station.value.id},
-  ]
-})
+const canManage = computed(() => canManageStation(station.value))
 
-async function load() {
-  loading.value = true
+const requiredRule = (value: string) => !!value || 'Required'
+
+const canSave = computed(() => station.value !== null
+  && mainQRZ.value.trim().length > 0
+  && (mainQRZ.value !== station.value.mainQRZ || description.value !== station.value.description))
+
+function fillForm() {
+  mainQRZ.value = station.value?.mainQRZ ?? ''
+  description.value = station.value?.description ?? ''
+}
+
+async function save() {
+  if (station.value === null) return
+
+  saving.value = true
   errorMessage.value = ''
+  saved.value = false
   try {
-    station.value = await stationsStore.getStation(props.stationId)
+    const updated = await stationsStore.updateStation(station.value.id, {
+      mainQRZ: mainQRZ.value.trim(),
+      description: description.value,
+    })
+    // The update response may omit the role, which belongs to the user rather than the station.
+    station.value = {...updated, role: updated.role ?? station.value.role}
+    saved.value = true
   } catch (error) {
-    station.value = null
     errorMessage.value = stationErrorText(error)
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 
-onMounted(load)
-watch(() => props.stationId, load)
+watch(station, fillForm, {immediate: true})
+watch([mainQRZ, description], () => {
+  saved.value = false
+})
 </script>
 
 <template>
   <v-card-title>General</v-card-title>
-  <v-card-text>
-    <v-progress-linear
-      v-if="loading"
-      indeterminate
-    />
-    <v-alert
-      v-else-if="errorMessage"
-      type="error"
-      variant="tonal"
-      :text="errorMessage"
-    />
+  <v-card-text v-if="station !== null">
+    <v-form
+      v-if="canManage"
+      class="settings-block"
+      @submit.prevent="canSave && save()"
+    >
+      <v-alert
+        v-if="errorMessage"
+        class="mb-4"
+        type="error"
+        variant="tonal"
+        :text="errorMessage"
+      />
+      <v-alert
+        v-else-if="saved"
+        class="mb-4"
+        type="success"
+        variant="tonal"
+        text="Station saved"
+      />
+
+      <v-text-field
+        v-model="mainQRZ"
+        label="Main QRZ"
+        :rules="[requiredRule]"
+      />
+      <v-textarea
+        v-model="description"
+        label="Description"
+        rows="3"
+        auto-grow
+      />
+      <v-list density="compact">
+        <v-list-item
+          title="Id"
+          :subtitle="station.id"
+        />
+      </v-list>
+
+      <v-btn
+        class="mt-4"
+        color="primary"
+        type="submit"
+        :disabled="!canSave"
+        :loading="saving"
+      >
+        Save
+      </v-btn>
+    </v-form>
+
     <v-card
-      v-else-if="station !== null"
+      v-else
       class="settings-block"
       title="Station"
       variant="outlined"
     >
       <v-list>
         <v-list-item
-          v-for="field in fields"
-          :key="field.label"
-          :title="field.label"
-          :subtitle="field.value"
+          title="Main QRZ"
+          :subtitle="station.mainQRZ"
+        />
+        <v-list-item
+          title="Description"
+          :subtitle="station.description"
+        />
+        <v-list-item
+          title="Id"
+          :subtitle="station.id"
         />
       </v-list>
     </v-card>
