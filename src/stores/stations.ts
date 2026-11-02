@@ -18,19 +18,21 @@
 import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
+import {useAuthentStore} from "@/stores/authent";
 import type {
   AgentUpdate,
   Station,
   StationCreate,
   StationGrant,
   StationGrantUpdate,
+  StationRole,
   StationUpdate
 } from "@/components/settings/station/Station";
 import type {AgentDetail} from "@/components/agent/Agent";
 
 export const useStationsStore = defineStore('stations', {
   state: () => {
-    return {axiosStore: useAxiosStore(), agentConnectionStore: useAgentConnectionStore()}
+    return {axiosStore: useAxiosStore(), agentConnectionStore: useAgentConnectionStore(), authentStore: useAuthentStore()}
   },
   actions: {
     async getStations(): Promise<Station[]> {
@@ -39,9 +41,20 @@ export const useStationsStore = defineStore('stations', {
         .then((response) => response.data);
     },
     async getStation(id: string): Promise<Station> {
-      return this.axiosStore.axios
+      const station = await this.axiosStore.axios
         .get<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`))
         .then((response) => response.data);
+      if (!station.role) station.role = await this.getCurrentUserRole(id);
+      return station;
+    },
+    // Fallback while the server does not send the role with the station: read it from the grants.
+    async getCurrentUserRole(stationId: string): Promise<StationRole> {
+      try {
+        const grants = await this.getStationGrants(stationId);
+        return grants.find((grant) => grant.subject === this.authentStore.account?.name)?.role ?? 'MEMBER';
+      } catch {
+        return 'MEMBER';
+      }
     },
     async createStation(request: StationCreate): Promise<Station> {
       return this.axiosStore.axios
