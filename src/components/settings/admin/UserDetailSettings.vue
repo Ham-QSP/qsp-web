@@ -18,11 +18,14 @@
 <script setup lang="ts">
 import {useUsersStore} from '@/stores/users'
 import {useAuthentStore} from '@/stores/authent'
+import {useStationsStore} from '@/stores/stations'
 import type {User} from '@/components/settings/admin/User'
+import {stationErrorText} from '@/components/settings/station/Station'
 
 const props = defineProps<{ id: string }>()
 
 const usersStore = useUsersStore()
+const stationsStore = useStationsStore()
 const authentStore = useAuthentStore()
 const router = useRouter()
 
@@ -38,6 +41,12 @@ const loading = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
 const deleteDialog = ref(false)
+const createStation = ref(true)
+const mainQRZ = ref('')
+const mainQRZEdited = ref(false)
+const stationDescription = ref('')
+// Set when the user was created but not the station; shown once the page of the new user is loaded.
+const pendingError = ref('')
 
 const emailRule = (value: string) => /^\S+@\S+\.\S+$/.test(value) || 'Invalid email'
 const requiredRule = (value: string) => !!value || 'Required'
@@ -46,7 +55,10 @@ const maxRule = (value: string) => value.length <= 100 || '100 characters max'
 const canSave = computed(() => {
   if (emailRule(email.value) !== true || email.value.length > 320) return false
   if (password.value.length > 100) return false
-  if (isNew.value) return username.value.length > 0 && username.value.length <= 100 && password.value.length > 0
+  if (isNew.value) {
+    return username.value.length > 0 && username.value.length <= 100 && password.value.length > 0
+      && (!createStation.value || mainQRZ.value.trim().length > 0)
+  }
   return user.value !== null && (
     email.value !== user.value.email
     || enabled.value !== user.value.enabled
@@ -68,13 +80,18 @@ function errorText(error: unknown): string {
 }
 
 async function load() {
-  errorMessage.value = ''
+  errorMessage.value = pendingError.value
+  pendingError.value = ''
   if (isNew.value) {
     user.value = null
     username.value = ''
     email.value = ''
     password.value = ''
     enabled.value = true
+    createStation.value = true
+    mainQRZ.value = ''
+    mainQRZEdited.value = false
+    stationDescription.value = ''
     return
   }
   if (!authentStore.isAuthenticated()) return
@@ -100,6 +117,13 @@ async function save() {
         email: email.value,
         enabled: enabled.value,
       })
+      if (createStation.value) {
+        try {
+          await createStationFor(created.username)
+        } catch (error) {
+          pendingError.value = `User created, but the station setup failed: ${stationErrorText(error)}`
+        }
+      }
       await router.replace(`/settings/admin/users/${created.id}`)
     } else {
       fillForm(await usersStore.updateUser(props.id, {
@@ -113,6 +137,14 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+async function createStationFor(owner: string) {
+  await stationsStore.createStation({
+    mainQRZ: mainQRZ.value.trim(),
+    description: stationDescription.value,
+    grants: [{subject: owner, role: 'OWNER'}],
+  })
 }
 
 async function remove() {
@@ -131,6 +163,9 @@ async function remove() {
 }
 
 onMounted(load)
+watch(username, (value) => {
+  if (!mainQRZEdited.value) mainQRZ.value = value.toUpperCase()
+})
 watch(() => props.id, load)
 </script>
 
@@ -200,6 +235,33 @@ watch(() => props.id, load)
         label="Enabled"
         color="primary"
       />
+
+      <template v-if="isNew">
+        <v-switch
+          v-model="createStation"
+          label="Create a station"
+          color="primary"
+          hide-details
+        />
+        <template v-if="createStation">
+          <v-text-field
+            v-model="mainQRZ"
+            class="mt-2"
+            label="Main QRZ"
+            hint="The new user will own this station"
+            persistent-hint
+            :rules="[requiredRule]"
+            @update:model-value="mainQRZEdited = true"
+          />
+          <v-textarea
+            v-model="stationDescription"
+            class="mt-2"
+            label="Station description"
+            rows="2"
+            auto-grow
+          />
+        </template>
+      </template>
 
       <v-list
         v-if="!isNew && user !== null"

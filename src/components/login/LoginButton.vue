@@ -116,6 +116,17 @@ function getServerInfo() {
               @click="menu = false"
             />
           </v-list-item>
+          <v-list-item>
+            <v-btn
+              block
+              class="justify-start"
+              variant="text"
+              prepend-icon="mdi-radio-tower"
+              text="Stations"
+              to="/settings/station"
+              @click="menu = false"
+            />
+          </v-list-item>
           <v-list-item v-if="authentStore.hasPermission('administrate')">
             <v-btn
               block

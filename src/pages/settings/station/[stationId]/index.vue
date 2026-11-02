@@ -15,10 +15,6 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-<script setup lang="ts">
-const route = useRoute("/settings/profile/agents/[id]")
-</script>
-
 <template>
-  <AgentDetailSettings :id="route.params.id" />
+  <StationGeneralSettings />
 </template>

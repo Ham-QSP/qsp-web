@@ -16,5 +16,9 @@
 -->
 
 <template>
-  <AgentsSettings />
+  <v-container fluid>
+    <v-card>
+      <StationsSettings />
+    </v-card>
+  </v-container>
 </template>

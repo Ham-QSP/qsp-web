@@ -15,6 +15,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
+<script setup lang="ts">
+const route = useRoute("/settings/station/[stationId]/access")
+</script>
+
 <template>
-  <ProfileSettings />
+  <StationAccessSettings :station-id="route.params.stationId" />
 </template>

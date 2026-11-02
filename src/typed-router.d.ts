@@ -25,8 +25,11 @@ declare module 'vue-router/auto-routes' {
     '/settings/admin/users/': RouteRecordInfo<'/settings/admin/users/', '/settings/admin/users', Record<never, never>, Record<never, never>>,
     '/settings/admin/users/[id]': RouteRecordInfo<'/settings/admin/users/[id]', '/settings/admin/users/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
     '/settings/profile': RouteRecordInfo<'/settings/profile', '/settings/profile', Record<never, never>, Record<never, never>>,
-    '/settings/profile/': RouteRecordInfo<'/settings/profile/', '/settings/profile', Record<never, never>, Record<never, never>>,
-    '/settings/profile/agents/': RouteRecordInfo<'/settings/profile/agents/', '/settings/profile/agents', Record<never, never>, Record<never, never>>,
-    '/settings/profile/agents/[id]': RouteRecordInfo<'/settings/profile/agents/[id]', '/settings/profile/agents/:id', { id: ParamValue<true> }, { id: ParamValue<false> }>,
+    '/settings/station/': RouteRecordInfo<'/settings/station/', '/settings/station', Record<never, never>, Record<never, never>>,
+    '/settings/station/[stationId]': RouteRecordInfo<'/settings/station/[stationId]', '/settings/station/:stationId', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
+    '/settings/station/[stationId]/': RouteRecordInfo<'/settings/station/[stationId]/', '/settings/station/:stationId', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
+    '/settings/station/[stationId]/access': RouteRecordInfo<'/settings/station/[stationId]/access', '/settings/station/:stationId/access', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
+    '/settings/station/[stationId]/agents/': RouteRecordInfo<'/settings/station/[stationId]/agents/', '/settings/station/:stationId/agents', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
+    '/settings/station/[stationId]/agents/[agentId]': RouteRecordInfo<'/settings/station/[stationId]/agents/[agentId]', '/settings/station/:stationId/agents/:agentId', { stationId: ParamValue<true>, agentId: ParamValue<true> }, { stationId: ParamValue<false>, agentId: ParamValue<false> }>,
   }
 }

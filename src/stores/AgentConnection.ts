@@ -20,7 +20,6 @@ import {useAxiosStore} from "@/stores/Axios";
 import {AgentConnection, type AgentSessionDetail, ConnectionState} from "@/components/agent/Signaling";
 import {QspServerInfo} from "@/components/login/QspServerInfo";
 import {useAgentControlStore} from "@/stores/agentControl";
-import type {AgentDetail} from "@/components/agent/Agent";
 
 export const useAgentConnectionStore = defineStore('agentConnection', {
   state: () => {
@@ -39,11 +38,6 @@ export const useAgentConnectionStore = defineStore('agentConnection', {
       }
 
       return this.config.signalingServerPrefix + path;
-    },
-    async getAgents(): Promise<AgentDetail[]> {
-      return this.axiosStore.axios
-        .get<AgentDetail[]>(this.signalingUrl("/agent"))
-        .then((response) => response.data);
     },
     async getOnlineAgents(): Promise<AgentSessionDetail[]> {
       return this.axiosStore.axios

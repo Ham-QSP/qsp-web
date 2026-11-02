@@ -16,46 +16,15 @@
 -->
 
 <script setup lang="ts">
-definePage({meta: {permission: 'administrate'}})
+import type {SettingItem} from '@/components/settings/SettingsNavLayout.vue'
 
-interface SettingItem {
-  to: string
-  title: string
-  icon: string
-}
+definePage({meta: {permission: 'administrate'}})
 
 const items: SettingItem[] = [
   {to: '/settings/admin/users', title: 'Users', icon: 'mdi-account-group'},
 ]
-
-const route = useRoute()
-
-function isActive(item: SettingItem) {
-  return route.path === item.to || route.path.startsWith(item.to + '/')
-}
 </script>
 
 <template>
-  <v-container fluid>
-    <v-row>
-      <v-col cols="12" sm="4" md="3">
-        <v-list nav>
-          <v-list-item
-            v-for="item in items"
-            :key="item.to"
-            :active="isActive(item)"
-            :prepend-icon="item.icon"
-            :title="item.title"
-            :to="item.to"
-          />
-        </v-list>
-      </v-col>
-
-      <v-col cols="12" sm="8" md="9">
-        <v-card>
-          <router-view />
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+  <SettingsNavLayout :items="items" />
 </template>

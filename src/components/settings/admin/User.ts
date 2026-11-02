@@ -24,6 +24,12 @@ export interface User {
   passwordExpiration: string | null
 }
 
+export interface UserSummary {
+  id: string
+  username: string
+  email: string
+}
+
 export interface CreateUserRequest {
   username: string
   password: string
