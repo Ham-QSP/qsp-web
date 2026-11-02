@@ -12,6 +12,6 @@
     "test": "node --test test/"
   },
   "devDependencies": {
-    "sass": "1.77"
+    "sass": "1.107"
   }
 }
