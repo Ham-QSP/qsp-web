@@ -20,6 +20,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SettingsNavLayout: typeof import('./components/settings/SettingsNavLayout.vue')['default']
+    StationAccessSettings: typeof import('./components/settings/station/StationAccessSettings.vue')['default']
     StationAgentsSettings: typeof import('./components/settings/station/StationAgentsSettings.vue')['default']
     StationGeneralSettings: typeof import('./components/settings/station/StationGeneralSettings.vue')['default']
     StationsSettings: typeof import('./components/settings/station/StationsSettings.vue')['default']

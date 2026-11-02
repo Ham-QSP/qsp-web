@@ -28,6 +28,7 @@ declare module 'vue-router/auto-routes' {
     '/settings/station/': RouteRecordInfo<'/settings/station/', '/settings/station', Record<never, never>, Record<never, never>>,
     '/settings/station/[stationId]': RouteRecordInfo<'/settings/station/[stationId]', '/settings/station/:stationId', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
     '/settings/station/[stationId]/': RouteRecordInfo<'/settings/station/[stationId]/', '/settings/station/:stationId', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
+    '/settings/station/[stationId]/access': RouteRecordInfo<'/settings/station/[stationId]/access', '/settings/station/:stationId/access', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
     '/settings/station/[stationId]/agents/': RouteRecordInfo<'/settings/station/[stationId]/agents/', '/settings/station/:stationId/agents', { stationId: ParamValue<true> }, { stationId: ParamValue<false> }>,
     '/settings/station/[stationId]/agents/[agentId]': RouteRecordInfo<'/settings/station/[stationId]/agents/[agentId]', '/settings/station/:stationId/agents/:agentId', { stationId: ParamValue<true>, agentId: ParamValue<true> }, { stationId: ParamValue<false>, agentId: ParamValue<false> }>,
   }

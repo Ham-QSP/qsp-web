@@ -31,6 +31,18 @@ export interface StationUpdate {
   description: string
 }
 
+export interface StationGrant {
+  id: string
+  station: string
+  subject: string
+  role: StationRole
+}
+
+export interface StationGrantUpdate {
+  subject: string
+  role: StationRole
+}
+
 export interface AgentUpdate {
   displayName: string
 }

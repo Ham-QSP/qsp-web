@@ -18,7 +18,13 @@
 import {defineStore} from 'pinia'
 import {useAxiosStore} from "@/stores/Axios";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
-import type {AgentUpdate, Station, StationUpdate} from "@/components/settings/station/Station";
+import type {
+  AgentUpdate,
+  Station,
+  StationGrant,
+  StationGrantUpdate,
+  StationUpdate
+} from "@/components/settings/station/Station";
 import type {AgentDetail} from "@/components/agent/Agent";
 
 export const useStationsStore = defineStore('stations', {
@@ -40,6 +46,25 @@ export const useStationsStore = defineStore('stations', {
       return this.axiosStore.axios
         .put<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`), request)
         .then((response) => response.data);
+    },
+    async getStationGrants(stationId: string): Promise<StationGrant[]> {
+      return this.axiosStore.axios
+        .get<StationGrant[]>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/grant`))
+        .then((response) => response.data);
+    },
+    async createStationGrant(stationId: string, request: StationGrantUpdate): Promise<StationGrant> {
+      return this.axiosStore.axios
+        .post<StationGrant>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/grant`), request)
+        .then((response) => response.data);
+    },
+    async updateStationGrant(stationId: string, grantId: string, request: StationGrantUpdate): Promise<StationGrant> {
+      return this.axiosStore.axios
+        .put<StationGrant>(this.agentConnectionStore.signalingUrl(`/station/${stationId}/grant/${grantId}`), request)
+        .then((response) => response.data);
+    },
+    async deleteStationGrant(stationId: string, grantId: string): Promise<void> {
+      await this.axiosStore.axios
+        .delete(this.agentConnectionStore.signalingUrl(`/station/${stationId}/grant/${grantId}`));
     },
     async getStationAgents(stationId: string): Promise<AgentDetail[]> {
       return this.axiosStore.axios

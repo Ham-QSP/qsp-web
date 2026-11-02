@@ -34,6 +34,7 @@ provide(stationKey, station)
 const items = computed<SettingItem[]>(() => [
   {to: `/settings/station/${route.params.stationId}`, title: 'General', icon: 'mdi-information-outline', exact: true},
   {to: `/settings/station/${route.params.stationId}/agents`, title: 'Agents', icon: 'mdi-radio'},
+  {to: `/settings/station/${route.params.stationId}/access`, title: 'Access control', icon: 'mdi-shield-key'},
 ])
 
 async function load() {
