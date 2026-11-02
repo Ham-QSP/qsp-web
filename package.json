@@ -13,14 +13,16 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force",
-    "lint": "eslint . --fix"
+    "lint": "eslint . --fix",
+    "predev": "yarn workspace @ham-qsp/qsp-style build",
+    "prebuild-only": "yarn workspace @ham-qsp/qsp-style build"
   },
   "dependencies": {
     "@ham-qsp/proto-files": "^0.1.7",
+    "@ham-qsp/qsp-style": "0.0.0",
     "@mdi/font": "7.4",
     "axios": "^1.15",
     "core-js": "^3.37",
-    "roboto-fontface": "*",
     "vue": "^3.5",
     "vuetify": "^3.7",
     "yoga-layout": "^3.2"
@@ -40,7 +42,6 @@
     "sass-embedded": "^1.77",
     "typescript": "~5.6",
     "unplugin-auto-import": "^0.17",
-    "unplugin-fonts": "^1.1",
     "unplugin-vue-components": "^29.0.0",
     "unplugin-vue-router": "^0.10",
     "vite": "^5.4.21",

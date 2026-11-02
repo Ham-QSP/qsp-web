@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import {storeToRefs} from 'pinia'
 import {useAgentControlStore} from '@/stores/agentControl'
+import tokens from '@ham-qsp/qsp-style/tokens.json'
 import {Direction, Edge, FlexDirection, loadYoga, Wrap, type Config, type Node, type Yoga} from 'yoga-layout/load'
 
 const props = withDefaults(defineProps<{
@@ -29,13 +30,13 @@ const props = withDefaults(defineProps<{
   alertColor?: string
   warningColor?: string
 }>(), {
-  backgroundColor: '#07110f',
-  primaryTextColor: '#d8fff4',
-  secondaryTextColor: '#4f756e',
-  highlightColor: '#6df7c1',
-  highlightTextColor: '#07110f',
-  alertColor: '#ff5a66',
-  warningColor: '#ffcc66',
+  backgroundColor: tokens.color.background,
+  primaryTextColor: tokens.color.text,
+  secondaryTextColor: tokens.color.textSecondary,
+  highlightColor: tokens.color.primary,
+  highlightTextColor: tokens.color.onPrimary,
+  alertColor: tokens.color.error,
+  warningColor: tokens.color.warning,
 })
 
 const canvas = ref<HTMLCanvasElement | null>(null)
@@ -47,7 +48,7 @@ const frequency = computed(() => {
   return vfoState.value.frequency.toLocaleString('de-DE')
 })
 const mode = computed(() => vfoState.value?.mode ?? '')
-const displayFont = '"Roboto Mono", "SFMono-Regular", "Cascadia Mono", "Liberation Mono", Menlo, monospace'
+const displayFont = tokens.font.mono
 const layoutParameter: LayoutParameter = {
   rootMargin: 20,
   rootPadding: 20,

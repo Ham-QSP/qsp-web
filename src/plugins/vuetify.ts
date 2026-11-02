@@ -27,10 +27,25 @@ import 'vuetify/styles'
 
 // Composables
 import { createVuetify } from 'vuetify'
+import tokens from '@ham-qsp/qsp-style/tokens.json'
 
 // https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
   theme: {
-    defaultTheme: 'dark',
+    defaultTheme: 'qspDark',
+    themes: {
+      qspDark: {
+        dark: true,
+        colors: {
+          'primary': tokens.color.primary,
+          'on-primary': tokens.color.onPrimary,
+          'background': tokens.color.background,
+          'surface': tokens.color.surface,
+          'error': tokens.color.error,
+          'success': tokens.color.success,
+          'warning': tokens.color.warning,
+        },
+      },
+    },
   },
 })
