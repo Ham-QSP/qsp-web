@@ -12,11 +12,16 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AgentButton: typeof import('./components/agent/AgentButton.vue')['default']
+    AgentDetailSettings: typeof import('./components/settings/profile/AgentDetailSettings.vue')['default']
+    AgentsSettings: typeof import('./components/settings/profile/AgentsSettings.vue')['default']
     AppFooter: typeof import('./components/AppFooter.vue')['default']
     LoggedInCard: typeof import('./components/login/LoggedInCard.vue')['default']
     LoginButton: typeof import('./components/login/LoginButton.vue')['default']
+    ProfileSettings: typeof import('./components/settings/profile/ProfileSettings.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TransceiverControl: typeof import('./components/TransceiverControl.vue')['default']
+    UserDetailSettings: typeof import('./components/settings/admin/UserDetailSettings.vue')['default']
+    UsersSettings: typeof import('./components/settings/admin/UsersSettings.vue')['default']
   }
 }

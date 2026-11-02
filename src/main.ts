@@ -36,7 +36,7 @@ import type {AppConfig} from "@/AppConfig";
 const app = createApp(App)
 
 
-fetch("/config.json")
+fetch("/config-local.json")
   .then((response) => response.json())
   .then((config: AppConfig) => {
     app.config.globalProperties.config = config

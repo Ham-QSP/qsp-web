@@ -20,6 +20,7 @@
 import {getQspServerInfo} from "./QspServerInfo";
 import {useAuthentStore} from "@/stores/authent";
 import {useAgentConnectionStore} from "@/stores/AgentConnection";
+import {ConnectionState} from "@/components/agent/Signaling";
 
 const authentStore = useAuthentStore();
 const agentStore = useAgentConnectionStore();
@@ -29,6 +30,11 @@ const serverInfoType = ref("");
 const serverInfoVersion = ref("");
 const serverInfoDescription = ref("");
 
+const fav = ref(true)
+const menu = ref(false)
+const message = ref(false)
+const hints = ref(true)
+
 const loginClick = () => {
   if (authentStore.isAuthenticated()) {
     getServerInfo();
@@ -37,8 +43,15 @@ const loginClick = () => {
     authentStore.login()
   }
 }
-const logoutClick = () => {
-  authentStore.logout();
+const logoutClick = async () => {
+  menu.value = false
+  if (agentStore.agentConnectionState.state !== ConnectionState.NOT_CONNECTED) {
+    agentStore.disconnectFromAgent()
+  }
+  await authentStore.revokeRefreshToken()
+  const endSessionUrl = authentStore.endSessionUrl()
+  await authentStore.logout()
+  window.location.assign(endSessionUrl)
 }
 
 function getServerInfo() {
@@ -60,48 +73,71 @@ function getServerInfo() {
     text="Log in"
     @click="loginClick"
   />
-  <v-dialog
+  <div
     v-else
-    max-width="500"
-    @after-enter="getServerInfo"
+    class="text-center"
   >
-    <template #activator="{ props: activatorProps }">
-      <v-btn
-        prepend-icon="mdi-account-circle"
-        rounded="xl"
-        v-bind="activatorProps"
-      >
-        <template #prepend>
-          <v-icon />
-        </template>
-        <div>
+    <v-menu
+      v-model="menu"
+      :close-on-content-click="false"
+      location="bottom"
+    >
+      <template #activator="{ props }">
+        <v-btn
+          v-bind="props"
+          prepend-icon="mdi-account-circle"
+          rounded="xl"
+          @click="getServerInfo"
+        >
           {{ authentStore.account.name }}
-        </div>
-      </v-btn>
-    </template>
+        </v-btn>
+      </template>
 
-    <template #default="{ isActive }">
-      <v-card title="QSP Server">
-        <v-card-text>
-          <v-expansion-panels :disabled="!serverInfoReady">
-            <v-expansion-panel>
-              <v-expansion-panel-title>
-                {{ serverInfoName }}
-              </v-expansion-panel-title>
-              <v-expansion-panel-text>
-                <span>{{ serverInfoType }}</span>
-                <v-chip size="x-small">
-                  {{ serverInfoVersion }}
-                </v-chip>
-                <p class="font-weight-light ml-2 text-body-2">
-                  {{ serverInfoDescription }}
-                </p>
-              </v-expansion-panel-text>
-            </v-expansion-panel>
-          </v-expansion-panels>
-        </v-card-text>
+      <v-card min-width="300">
+        <v-list>
+          <v-list-item :title="authentStore.account.name" />
+          <v-list-item
+            :title="serverInfoName"
+            :subtitle="serverInfoDescription"
+          />
+        </v-list>
+
+        <v-divider />
+
+        <v-list>
+          <v-list-item>
+            <v-btn
+              block
+              class="justify-start"
+              variant="text"
+              prepend-icon="mdi-cog"
+              text="Profil"
+              to="/settings"
+              @click="menu = false"
+            />
+          </v-list-item>
+          <v-list-item v-if="authentStore.hasPermission('administrate')">
+            <v-btn
+              block
+              class="justify-start"
+              variant="text"
+              prepend-icon="mdi-shield-account"
+              text="Admin"
+              to="/settings/admin"
+              @click="menu = false"
+            />
+          </v-list-item>
+        </v-list>
 
         <v-card-actions>
+          <v-btn
+            color="primary"
+            variant="text"
+            @click="menu = false"
+          >
+            Close
+          </v-btn>
+          <v-spacer />
           <v-btn
             variant="outlined"
             color="error"
@@ -109,15 +145,10 @@ function getServerInfo() {
           >
             Log out
           </v-btn>
-          <v-spacer />
-          <v-btn
-            text="Close"
-            @click="isActive.value = false"
-          />
         </v-card-actions>
       </v-card>
-    </template>
-  </v-dialog>
+    </v-menu>
+  </div>
 </template>
 
 <style scoped lang="sass">

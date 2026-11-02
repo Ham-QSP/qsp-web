@@ -25,10 +25,26 @@
 import { createRouter, createWebHistory } from 'vue-router/auto'
 import { setupLayouts } from 'virtual:generated-layouts'
 import { routes } from 'vue-router/auto-routes'
+import { useAuthentStore } from '@/stores/authent'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    permission?: string
+  }
+}
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: setupLayouts(routes),
+})
+
+router.beforeEach(async (to) => {
+  const permission = to.meta.permission
+  if (!permission) return true
+
+  const authentStore = useAuthentStore()
+  await authentStore.whenReady()
+  return authentStore.hasPermission(permission) ? true : '/settings'
 })
 
 // Workaround for https://github.com/vitejs/vite/issues/11804

@@ -23,7 +23,11 @@ const STORAGE_AUTH_STATE = 'authState';
 
 class AuthentAccount {
   name: string = ""
+  roles: string[] = []
 }
+
+let markReady: () => void = () => {}
+const readyPromise = new Promise<void>((resolve) => { markReady = resolve })
 
 interface AuthenticationBroadcastMessage {
   action: string;
@@ -146,7 +150,26 @@ export const useAuthentStore = defineStore('authent', {
     return {account, loginState, axiosInstance, codeVerifier, tokenResponse};
   },
 
+  getters: {
+    permissions(): Set<string> {
+      const rolePermissions = this.config.rolePermissions ?? {}
+      const permissions = new Set<string>()
+      for (const role of this.account?.roles ?? []) {
+        for (const permission of rolePermissions[role] ?? []) {
+          permissions.add(permission)
+        }
+      }
+      return permissions
+    },
+  },
+
   actions: {
+    hasPermission(permission: string): boolean {
+      return this.permissions.has(permission)
+    },
+    whenReady(): Promise<void> {
+      return readyPromise
+    },
     authenticationUrl(path: string): string {
       if (!this.config.authenticationServerPrefix) {
         throw new Error("Authentication server prefix is not configured");
@@ -164,7 +187,11 @@ export const useAuthentStore = defineStore('authent', {
     async init() {
       console.log("Auth: init");
 
-      await this.restoreStorage();
+      try {
+        await this.restoreStorage();
+      } finally {
+        markReady();
+      }
 
       const bc = new BroadcastChannel("authent_popup");
       bc.onmessage = async (message) => {
@@ -247,11 +274,44 @@ export const useAuthentStore = defineStore('authent', {
       const decodedToken = decodeJWT(tokenResponse.access_token);
       this.account = new AuthentAccount();
       this.account.name = decodedToken.sub || '';
+      const roles: unknown = decodedToken.roles;
+      this.account.roles = Array.isArray(roles)
+        ? roles.filter((role): role is string => typeof role === 'string').map((role) => role.replace(/^ROLE_/, ''))
+        : [];
 
       this.loginState = LoginState.AUTHENTICATED;
 
       localStorage.setItem(STORAGE_TOKEN, JSON.stringify(tokenResponse));
       console.log("Auth: Token acquired");
+    },
+
+    endSessionUrl(): string {
+      if (!this.config.portalUrl) {
+        throw new Error("Portal URL is not configured");
+      }
+
+      const params = new URLSearchParams();
+      params.append("client_id", "portal");
+      if (this.tokenResponse?.id_token) {
+        params.append("id_token_hint", this.tokenResponse.id_token);
+      }
+      params.append("post_logout_redirect_uri", this.config.portalUrl);
+      return this.authenticationUrl(`/connect/logout?${params.toString()}`);
+    },
+
+    async revokeRefreshToken() {
+      const refreshToken = this.tokenResponse?.refresh_token;
+      if (!refreshToken) return;
+
+      const params = new URLSearchParams();
+      params.append('client_id', 'portal');
+      params.append('token', refreshToken);
+      params.append('token_type_hint', 'refresh_token');
+      try {
+        await axios.post(this.authenticationUrl("/oauth2/revoke"), params);
+      } catch (error) {
+        console.warn("Auth: unable to revoke the refresh token", error);
+      }
     },
 
     async logout() {

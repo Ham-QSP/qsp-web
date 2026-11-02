@@ -19,4 +19,5 @@ export interface AppConfig {
   signalingServerPrefix: string
   authenticationServerPrefix: string
   portalUrl: string
+  rolePermissions?: Record<string, string[]>
 }
