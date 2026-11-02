@@ -44,3 +44,7 @@ test('uses tokens', () => {
   const source = readFileSync(new URL('src/base.scss', root), 'utf8')
   assert.doesNotMatch(source, /#[0-9a-fA-F]{3,8}\b/)
 })
+
+test('page stacks its children around the card', () => {
+  assert.match(css, /\.qsp-page \{[^}]*flex-direction: column/)
+})

@@ -12,3 +12,15 @@ test('no hardcoded colour', () => {
     assert.ok(!source.includes('Roboto'), file)
   }
 })
+
+test('portal theme takes text and border from tokens', () => {
+  const source = readFileSync(new URL('src/plugins/vuetify.ts', repository), 'utf8')
+  assert.ok(source.includes("'on-background': tokens.color.text"))
+  assert.ok(source.includes("'on-surface': tokens.color.text"))
+  assert.ok(source.includes("'border-color': tokens.color.border"))
+})
+
+test('dividers use the border token', () => {
+  const source = readFileSync(new URL('src/App.vue', repository), 'utf8')
+  assert.match(source, /\.v-divider\s*\n\s*color: rgb\(var\(--v-border-color\)\)/)
+})
