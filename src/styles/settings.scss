@@ -22,6 +22,7 @@
  */
 
 // https://vuetifyjs.com/features/sass-variables/`
-// @use 'vuetify/settings' with (
-//   $color-pack: false
-// );
+@use '../../packages/qsp-style/dist/tokens' as t;
+@use 'vuetify/settings' with (
+  $body-font-family: t.$qsp-font-sans
+);

@@ -1,0 +1,17 @@
+{
+  "name": "@ham-qsp/qsp-style",
+  "private": true,
+  "type": "module",
+  "version": "0.0.0",
+  "license": "Apache-2.0",
+  "exports": {
+    "./tokens.json": "./tokens.json"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "sass": "1.77"
+  }
+}

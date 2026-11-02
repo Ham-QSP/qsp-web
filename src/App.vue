@@ -55,4 +55,7 @@ onUnmounted(() => {
 <style lang="sass">
 .v-app-bar .v-btn, .v-app-bar .v-divider
   margin-left: 10px
+
+.v-divider
+  color: rgb(var(--v-border-color))
 </style>
