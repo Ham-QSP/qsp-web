@@ -43,6 +43,10 @@ export interface StationGrantUpdate {
   role: StationRole
 }
 
+export interface StationCreate extends StationUpdate {
+  grants: StationGrantUpdate[]
+}
+
 export interface AgentUpdate {
   displayName: string
 }

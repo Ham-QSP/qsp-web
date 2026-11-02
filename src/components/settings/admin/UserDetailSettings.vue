@@ -139,18 +139,12 @@ async function save() {
   }
 }
 
-// The station is created by the admin, then handed over to the new user.
 async function createStationFor(owner: string) {
-  const station = await stationsStore.createStation({
+  await stationsStore.createStation({
     mainQRZ: mainQRZ.value.trim(),
     description: stationDescription.value,
+    grants: [{subject: owner, role: 'OWNER'}],
   })
-  await stationsStore.createStationGrant(station.id, {subject: owner, role: 'OWNER'})
-  const adminGrants = (await stationsStore.getStationGrants(station.id))
-    .filter((grant) => grant.subject === authentStore.account?.name && grant.subject !== owner)
-  for (const grant of adminGrants) {
-    await stationsStore.deleteStationGrant(station.id, grant.id)
-  }
 }
 
 async function remove() {

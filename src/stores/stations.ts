@@ -21,6 +21,7 @@ import {useAgentConnectionStore} from "@/stores/AgentConnection";
 import type {
   AgentUpdate,
   Station,
+  StationCreate,
   StationGrant,
   StationGrantUpdate,
   StationUpdate
@@ -42,7 +43,7 @@ export const useStationsStore = defineStore('stations', {
         .get<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`))
         .then((response) => response.data);
     },
-    async createStation(request: StationUpdate): Promise<Station> {
+    async createStation(request: StationCreate): Promise<Station> {
       return this.axiosStore.axios
         .post<Station>(this.agentConnectionStore.signalingUrl("/station"), request)
         .then((response) => response.data);
