@@ -42,6 +42,11 @@ export const useStationsStore = defineStore('stations', {
         .get<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`))
         .then((response) => response.data);
     },
+    async createStation(request: StationUpdate): Promise<Station> {
+      return this.axiosStore.axios
+        .post<Station>(this.agentConnectionStore.signalingUrl("/station"), request)
+        .then((response) => response.data);
+    },
     async updateStation(id: string, request: StationUpdate): Promise<Station> {
       return this.axiosStore.axios
         .put<Station>(this.agentConnectionStore.signalingUrl(`/station/${id}`), request)
