@@ -1,0 +1,29 @@
+<!doctype html>
+<!--
+  Copyright 2026 Florian MAZEN
+  SPDX-License-Identifier: Apache-2.0
+
+  Example login page using qsp-style, with the markup expected from a Spring Security login template.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in to QSP</title>
+  <link rel="stylesheet" href="../dist/qsp-style.css">
+</head>
+<body class="qsp-page">
+  <main class="qsp-card">
+    <h1 class="qsp-title">Sign in to QSP</h1>
+    <p class="qsp-error" role="alert">Invalid username or password. Check your credentials and try again, or contact your station administrator if the problem persists.</p>
+    <form method="post" action="/login">
+      <input type="hidden" name="_csrf" value="example-token">
+      <label class="qsp-label" for="username">Username</label>
+      <input class="qsp-input" id="username" name="username" autocomplete="username" required autofocus>
+      <label class="qsp-label" for="password">Password</label>
+      <input class="qsp-input" id="password" name="password" type="password" autocomplete="current-password" required>
+      <button class="qsp-button" type="submit">Sign in</button>
+    </form>
+  </main>
+</body>
+</html>
