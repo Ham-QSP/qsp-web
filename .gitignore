@@ -23,3 +23,5 @@ pnpm-debug.log*
 
 # qsp-style build output
 packages/qsp-style/dist
+packages/qsp-style/target
+packages/qsp-style/.flattened-pom.xml

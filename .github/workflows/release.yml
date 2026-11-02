@@ -10,7 +10,7 @@ on:
 
 permissions:
   contents: write
-  packages: read
+  packages: write
 
 concurrency:
   group: release-${{ inputs.version }}
@@ -52,8 +52,26 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Test qsp-style
+        run: yarn workspace @ham-qsp/qsp-style test
+
       - name: Build production bundle
         run: yarn build-only
+
+      - name: Publish qsp-style Maven artefact
+        run: mvn -B -f packages/qsp-style/pom.xml -Drevision="$VERSION" deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build release archive
         run: |
