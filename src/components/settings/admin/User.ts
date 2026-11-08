@@ -22,6 +22,7 @@ export interface User {
   enabled: boolean
   emailValidated: boolean
   passwordExpiration: string | null
+  roles: string[]
 }
 
 export interface UserSummary {
@@ -40,6 +41,8 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   email: string
   enabled: boolean
+  emailValidated: boolean
+  roles: string[]
   password?: string | null
 }
 
