@@ -65,6 +65,11 @@ export const useUsersStore = defineStore('users', {
         .put<User>(this.authentStore.authenticationUrl(`/users/${id}`), request)
         .then((response) => response.data);
     },
+    async getRoles(): Promise<string[]> {
+      return this.axiosStore.axios
+        .get<string[]>(this.authentStore.authenticationUrl("/roles"))
+        .then((response) => response.data);
+    },
     async deleteUser(id: string): Promise<void> {
       await this.axiosStore.axios
         .delete(this.authentStore.authenticationUrl(`/users/${id}`));

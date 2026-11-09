@@ -37,6 +37,9 @@ const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const enabled = ref(true)
+const emailValidated = ref(false)
+const roles = ref<string[]>([])
+const availableRoles = ref<string[]>([])
 const loading = ref(false)
 const saving = ref(false)
 const errorMessage = ref('')
@@ -62,15 +65,23 @@ const canSave = computed(() => {
   return user.value !== null && (
     email.value !== user.value.email
     || enabled.value !== user.value.enabled
+    || emailValidated.value !== user.value.emailValidated
+    || !sameRoles(roles.value, user.value.roles)
     || password.value.length > 0
   )
 })
+
+function sameRoles(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every(role => b.includes(role))
+}
 
 function fillForm(value: User) {
   user.value = value
   username.value = value.username
   email.value = value.email
   enabled.value = value.enabled
+  emailValidated.value = value.emailValidated
+  roles.value = [...value.roles]
   password.value = ''
 }
 
@@ -98,7 +109,9 @@ async function load() {
 
   loading.value = true
   try {
-    fillForm(await usersStore.getUser(props.id))
+    const [loadedUser, loadedRoles] = await Promise.all([usersStore.getUser(props.id), usersStore.getRoles()])
+    availableRoles.value = loadedRoles
+    fillForm(loadedUser)
   } catch {
     user.value = null
   } finally {
@@ -129,6 +142,8 @@ async function save() {
       fillForm(await usersStore.updateUser(props.id, {
         email: email.value,
         enabled: enabled.value,
+        emailValidated: emailValidated.value,
+        roles: roles.value,
         password: password.value || null,
       }))
     }
@@ -235,6 +250,21 @@ watch(() => props.id, load)
         label="Enabled"
         color="primary"
       />
+      <v-switch
+        v-if="!isNew"
+        v-model="emailValidated"
+        label="Email validated"
+        color="primary"
+      />
+      <v-combobox
+        v-if="!isNew"
+        v-model="roles"
+        label="Groups"
+        :items="availableRoles"
+        multiple
+        chips
+        closable-chips
+      />
 
       <template v-if="isNew">
         <v-switch
@@ -264,15 +294,10 @@ watch(() => props.id, load)
       </template>
 
       <v-list
-        v-if="!isNew && user !== null"
+        v-if="!isNew && user?.passwordExpiration"
         density="compact"
       >
         <v-list-item
-          title="Email validated"
-          :subtitle="user.emailValidated ? 'Yes' : 'No'"
-        />
-        <v-list-item
-          v-if="user.passwordExpiration"
           title="Password expiration"
           :subtitle="new Date(user.passwordExpiration).toLocaleString()"
         />
