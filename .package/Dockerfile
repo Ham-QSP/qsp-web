@@ -8,6 +8,9 @@ FROM node:22.17-bookworm-slim AS builder
 WORKDIR /build
 
 COPY package.json yarn.lock .npmrc ./
+# qsp-style is a workspace package: yarn must see its manifest, otherwise it
+# looks it up on the registry and fails.
+COPY packages/qsp-style/package.json packages/qsp-style/package.json
 RUN corepack enable
 # .npmrc only sets @ham-qsp:registry; it has no auth token line, so yarn
 # would hit npm.pkg.github.com unauthenticated without this. Appending an
