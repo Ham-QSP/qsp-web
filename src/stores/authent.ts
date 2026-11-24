@@ -237,10 +237,10 @@ export const useAuthentStore = defineStore('authent', {
     },
 
 
-    async login() {
+    async login(prompt?: "create") {
       console.log("Auth: login");
       this.loginState = LoginState.REDIRECT_START;
-      const windowFeatures = "popup,width=400,height=500";
+      const windowFeatures = prompt === "create" ? "popup,width=400,height=600" : "popup,width=400,height=500";
       const verifier = await generateCodeVerifier();
       const challenge = await generateChallenge(verifier);
       const state = await generateState();
@@ -255,6 +255,9 @@ export const useAuthentStore = defineStore('authent', {
       params.append("code_challenge", challenge);
       params.append("code_challenge_method", "S256");
       params.append("state", state);
+      if (prompt) {
+        params.append("prompt", prompt);
+      }
 
       const url = new URL(this.authenticationUrl(`/oauth2/authorize?${params.toString()}`));
       const handle = window.open(

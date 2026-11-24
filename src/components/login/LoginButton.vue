@@ -43,6 +43,9 @@ const loginClick = () => {
     authentStore.login()
   }
 }
+const signupClick = () => {
+  authentStore.login("create")
+}
 const logoutClick = async () => {
   menu.value = false
   if (agentStore.agentConnectionState.state !== ConnectionState.NOT_CONNECTED) {
@@ -66,13 +69,20 @@ function getServerInfo() {
 </script>
 
 <template>
-  <v-btn
-    v-if="!authentStore.isAuthenticated()"
-    prepend-icon="mdi-account-circle"
-    rounded="xl"
-    text="Log in"
-    @click="loginClick"
-  />
+  <template v-if="!authentStore.isAuthenticated()">
+    <v-btn
+      prepend-icon="mdi-account-plus"
+      rounded="xl"
+      text="Sign up"
+      @click="signupClick"
+    />
+    <v-btn
+      prepend-icon="mdi-account-circle"
+      rounded="xl"
+      text="Log in"
+      @click="loginClick"
+    />
+  </template>
   <div
     v-else
     class="text-center"
